@@ -1,0 +1,4 @@
+-gt       # Graphics Type: Tiles
+-gB8      # Bit depth: 4bpp (16 cores, o mais comum para sprites)
+-m!       # Não gerar mapa de tiles (não é um background)
+-p        # Gerar paleta

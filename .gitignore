@@ -1,0 +1,8 @@
+# Ignorar arquivos do Emulador
+*.sav
+
+# Ignorar arquivos de Build
+build/
+*.o
+*.gba
+*.elf
