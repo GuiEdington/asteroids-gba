@@ -9,6 +9,9 @@
 
 const int SHEIGHT = 160;
 const int SWIDTH = 240;
+const int PLAYER_SIZE = 16;
+
+// LUT de Seno e Cosseno (32 valores para 360 graus, ou seja, 11.25 graus por passo)
 const s16 sin_lut[32] = {
     0, 50, 98, 142, 181, 212, 236, 251, 
     256, 251, 236, 212, 181, 142, 98, 50, 
@@ -26,13 +29,15 @@ typedef struct {
     bool active;
 } Entity;
 
-void cleanOam() {
+void cleanOam(OBJATTR* oam) {
+	// Limpa a OAM (Object Attribute Memory) para garantir que nenhum sprite residual seja renderizado.
 	for(int i = 0; i < 128; i++) {
-		OAM[i].attr0 = ATTR0_DISABLED;
+		oam[i].attr0 = ATTR0_DISABLED;
 	}
 }
 
 void loadSpritesInVram() {
+	// Método para carregar os gráficos e paletas dos sprites na memória de vídeo (VRAM) do GBA.
 	dmaCopy(spaceshipTiles, SPRITE_GFX, spaceshipTilesLen);
 	dmaCopy(spaceshipPal, SPRITE_PALETTE, spaceshipPalLen);
 }
@@ -78,17 +83,17 @@ int main(void) {
     
 	loadSpritesInVram();
 
-    cleanOam();
-
     Entity player;
-	player.x = 112 << 8;
-	player.y = 72 << 8;
+	player.x = ((SWIDTH/2) - (PLAYER_SIZE/2)) << 8;
+	player.y = ((SHEIGHT/2) - (PLAYER_SIZE/2)) << 8;
 	player.dx = 0;
 	player.dy = 0;
 	player.active = true;
 	player.angle = 0;
 
-	volatile OBJAFFINE* affine = (volatile OBJAFFINE*)OAM;
+	OBJATTR shadow_oam[128];
+	OBJAFFINE* affine = (OBJAFFINE*)shadow_oam;
+	cleanOam(shadow_oam);
 
     while (1) {
         scanKeys();
@@ -106,14 +111,12 @@ int main(void) {
 
         // CONTROLE DE FREIO
         if (keys & KEY_DOWN) {
-            /* Amortecedor Inercial (O Verdadeiro "Freio")
-             * Reduz gradativamente a velocidade acumulada (dx e dy) em direção a zero,
-             * independentemente de qual direção a nave está apontando no momento.
-             * Subtrair a variável por ela mesma deslocada em 4 (dx/16) cria uma
-             * curva de desaceleração incrivelmente suave e realista.
+            /* Aplica a mesma trigonometria, mas com os sinais invertidos.
+             * A nave "acelera para trás" na direção que o bico está apontando.
+             * Usei >> 8 (dividir por 256) para a ré ser mais fraca que a aceleração frontal.
              */
-            player.dx -= (player.dx >> 4);
-            player.dy -= (player.dy >> 4);
+            player.dx -= GET_SIN(player.angle) >> 6;
+            player.dy += GET_COS(player.angle) >> 6;
         }
 
 		// APLICAÇÃO DA FÍSICA
@@ -125,39 +128,47 @@ int main(void) {
 		int draw_y = player.y >> 8;
 
 		// LÓGICA DE TELA INFINITA (Wrap-around)
-		if (draw_x < -16) {
+		if (draw_x < -PLAYER_SIZE) {
 			player.x = SWIDTH << 8;
 		} else if (draw_x > SWIDTH) {
-			player.x = -16 << 8;
+			player.x = -PLAYER_SIZE << 8;
 		}
 
-		if (draw_y < -16) {
+		if (draw_y < -PLAYER_SIZE) {
             player.y = SHEIGHT << 8;
         } else if (draw_y > SHEIGHT) {
-            player.y = -16 << 8;
+            player.y = -PLAYER_SIZE << 8;
         }
 
 		// Atualiza a posição de desenho caso tenha saído da tela
 		draw_x = player.x >> 8;
         draw_y = player.y >> 8;
 
+		// Como o hardware dobrou a "caixa" (de 16 para 32), o gráfico foi parar no meio dela.
+        // Nós subtraímos a metade do tamanho original (8 pixels) para recentralizar a nave
+        // na posição física exata onde o jogador acha que ela está.
+        int render_x = draw_x - (PLAYER_SIZE / 2);
+        int render_y = draw_y - (PLAYER_SIZE / 2);
+
 		// MATRIZ DE ROTAÇÃO
         // Pega os valores da LUT e injeta na Matriz 0 da OAM
         int cos_val = GET_COS(player.angle);
         int sin_val = GET_SIN(player.angle);
 
-		VBlankIntrWait();
-        
-        affine[0].pa = cos_val;
+		affine[0].pa = cos_val;
         affine[0].pb = sin_val;
         affine[0].pc = -sin_val;
         affine[0].pd = cos_val;
 
 		// RENDERIZAÇÃO
-        // ATTR0_ROTSCALE avisa que o sprite vai girar. 
+        // ATTR0_ROTSCALE_DOUBLE avisa que o sprite vai girar e solicita uma área de buffer dupla para evitar clipping.
         // ATTR1_ROTDATA(0) diz para ele usar a matriz que acabamos de configurar ali em cima.
-        OAM[0].attr0 = (draw_y & MASK_Y) | ATTR0_COLOR_256 | ATTR0_SQUARE | ATTR0_ROTSCALE;
-        OAM[0].attr1 = (draw_x & MASK_X) | ATTR1_SIZE_16 | ATTR1_ROTDATA(0);
-        OAM[0].attr2 = ATTR2_PALETTE(0) | 0;
+        shadow_oam[0].attr0 = (render_y & MASK_Y) | ATTR0_COLOR_256 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE;
+        shadow_oam[0].attr1 = (render_x & MASK_X) | ATTR1_SIZE_16 | ATTR1_ROTDATA(0);
+        shadow_oam[0].attr2 = ATTR2_PALETTE(0) | 0;
+
+		VBlankIntrWait();
+
+		dmaCopy(shadow_oam, OAM, 128 * sizeof(OBJATTR));
     }
 }
