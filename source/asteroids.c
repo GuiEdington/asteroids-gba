@@ -1,6 +1,7 @@
 #include <gba.h>
 #include <stdbool.h>   // Necessário para o 'bool' funcionar
 #include "spaceship.h" // Import do sprite da nave e sua paleta
+#include "space_bg.h"  // Import do plano de fundo (opcional, pode ser usado para decorar a tela)
 
 
 #define MASK_Y 0x00FF
@@ -56,6 +57,26 @@ void loadSpritesInVram() {
 	dmaCopy(spaceshipPal, SPRITE_PALETTE, spaceshipPalLen);
 }
 
+void loadBackground() {
+    // 1. Configura o Maestro do Background 0 (REG_BG0CNT)
+    // - BG_256_COLOR: Usa paleta de 8-bits.
+    // - CHAR_BASE(0): Diz à GPU "Pegue os gráficos no Bloco de Memória 0".
+    // - MAP_BASE(28): Diz à GPU "A planilha do mapa está guardada no Bloco 28".
+    // - 3 (Prioridade): Garante que o fundo fique ATRÁS da nave e dos tiros (prioridades vão de 0 a 3, sendo 3 o mais fundo).
+    REG_BG0CNT = BG_256_COLOR | CHAR_BASE(0) | MAP_BASE(28) | 3;
+
+    // 2. Copia a Paleta
+    // BG_PALETTE é diferente do SPRITE_PALETTE! Eles vivem em espaços separados.
+    dmaCopy(space_bgPal, BG_PALETTE, space_bgPalLen);
+
+    // 3. Copia os Tiles (Gráficos) para o Char Block 0 (Endereço Físico Base: 0x06000000)
+    dmaCopy(space_bgTiles, (void*)0x06000000, space_bgTilesLen);
+
+    // 4. Copia o Mapa para o Screen Block 28
+    // Como cada Screen Block tem 2048 bytes (2KB), multiplicamos 28 por 2048.
+    dmaCopy(space_bgMap, (void*)(0x06000000 + (28 * 2048)), space_bgMapLen);
+}
+
 void initialDisplayConfig() {
 	// --- CONFIGURAÇÃO DE HARDWARE OBRIGATÓRIA ---
     
@@ -77,19 +98,13 @@ void initialDisplayConfig() {
 
 
     // --- CONFIGURAÇÃO DO DISPLAY E MEMÓRIA DE VÍDEO ---
-
-    // BG_PALETTE[0]: Acessa o primeiro espaço da memória de paletas de fundo.
-    // O índice [0] é especial no GBA: ele define a "cor de fundo" global (backdrop).
-    // Valores RGB5 vão estritamente de 0 a 31. (0,0,31) = Azul puro em brilho máximo.
-    BG_PALETTE[0] = RGB5(0, 0, 31);
-
     // REG_DISPCNT: Display Control Register (O maestro do chip de vídeo).
     // MODE_0     -> Define a arquitetura da tela para renderizar blocos 2D clássicos (Tiles).
     // OBJ_ENABLE -> Liga o motor de renderização da OAM. Sem isso, os sprites ficam invisíveis.
     // OBJ_1D_MAP -> Mapeamento 1D. Diz ao hardware para ler a memória VRAM de sprites como 
     //               uma "fita" contínua e linear, o que permite copiarmos arrays 
     //               diretamente do C usando dmaCopy sem nos preocupar com matrizes 2D.
-    REG_DISPCNT = MODE_0 | OBJ_ENABLE | OBJ_1D_MAP;
+    REG_DISPCNT = MODE_0 | OBJ_ENABLE | OBJ_1D_MAP | BG0_ENABLE;
 }
 
 void createProgrammaticBullet() {
@@ -120,6 +135,8 @@ int main(void) {
 	initialDisplayConfig();
     
 	loadSpritesInVram();
+
+	loadBackground();
 
 	createProgrammaticBullet();
 
