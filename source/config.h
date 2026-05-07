@@ -13,7 +13,7 @@
 // --- CONFIGURAÇÕES DO JOGO ---
 #define MAX_BULLETS 10
 #define MAX_SPEED (4 << 8)
-#define PLAYER_SIZE 16
+
 
 // --- MAPA DA VRAM (SPRITES) ---
 #define SPRITES_BLOCK 4
@@ -22,3 +22,9 @@
 #define AST_M_TILE_POS (AST_G_TILE_POS + 128)
 #define AST_P_TILE_POS (AST_M_TILE_POS + 32)
 #define PAL_SIZE 16
+
+// LUT de Seno e Cosseno (32 valores para 360 graus, ou seja, 11.25 graus por passo)
+extern const s16 sin_lut[32] __attribute__ ((section(".iwram")));
+
+#define GET_SIN(a) (sin_lut[(a) & 31])
+#define GET_COS(a) (sin_lut[((a) + 8) & 31])

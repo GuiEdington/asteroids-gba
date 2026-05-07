@@ -11,14 +11,9 @@
 
 // Defines
 #include "config.h"   // Import do arquivo de configurações, onde definimos constantes
+#include "player.h"
 
-// LUT de Seno e Cosseno (32 valores para 360 graus, ou seja, 11.25 graus por passo)
-const s16 sin_lut[32] __attribute__ ((section(".iwram"))) = {
-    0, 50, 98, 142, 181, 212, 236, 251, 
-    256, 251, 236, 212, 181, 142, 98, 50, 
-    0, -50, -98, -142, -181, -212, -236, -251, 
-    -256, -251, -236, -212, -181, -142, -98, -50
-};
+
 
 // Desenhando uma "esfera" de 8x8 pixels na mão
 const u8 bullet_gfx[64] __attribute__ ((section(".iwram"), aligned(4))) = {
@@ -32,8 +27,6 @@ const u8 bullet_gfx[64] __attribute__ ((section(".iwram"), aligned(4))) = {
     0,   0,   0,   0,   0,   0,   0,   0
 };
 
-#define GET_SIN(a) (sin_lut[(a) & 31])
-#define GET_COS(a) (sin_lut[((a) + 8) & 31])
 #define SPRITE_TILE(pos) (SPRITE_GFX + ((pos) * 16))
 
 typedef struct {
@@ -137,11 +130,6 @@ void createProgrammaticBullet() {
     }
 }
 
-void playerRotationControl(u16 keys, Entity* player) {
-    if (keys & KEY_LEFT)  player->angle--;
-    if (keys & KEY_RIGHT) player->angle++;
-}
-
 int main(void) {
     srand(REG_TM0CNT);
 
@@ -152,14 +140,6 @@ int main(void) {
 	loadBackground();
 
 	createProgrammaticBullet();
-
-    Entity player;
-	player.x = ((SCREEN_WIDTH/2) - (PLAYER_SIZE/2)) << 8;
-	player.y = ((SCREEN_HEIGHT/2) - (PLAYER_SIZE/2)) << 8;
-	player.dx = 0;
-	player.dy = 0;
-	player.active = true;
-	player.angle = 0;
 
 	Entity bullets[MAX_BULLETS];
     for(int i = 0; i < MAX_BULLETS; i++) {
@@ -174,6 +154,8 @@ int main(void) {
 	OBJATTR shadow_oam[128];
 	OBJAFFINE* affine = (OBJAFFINE*)shadow_oam;
 	cleanOam(shadow_oam);
+    Player player;
+    player_init(&player, &shadow_oam[0], SPACESHIP_TILE_POS);
 
     int asteroid_angle = rand() & 31;
 
@@ -188,37 +170,9 @@ int main(void) {
         scanKeys();
 		u16 keys = keysHeld();
 		u16 keys_pressed = keysDown();
+        player_update(&player, keys);
+        player_draw(&player, affine);
 
-		playerRotationControl(keys, &player);
-
-		// CONTROLE DE MOTOR (Inércia baseada no ângulo usando >> 4 como redutor de potência)
-        if (keys & KEY_UP) {
-            player.dx += GET_SIN(player.angle) >> 4; 
-            player.dy -= GET_COS(player.angle) >> 4; 
-        }
-
-        // CONTROLE DE FREIO
-        if (keys & KEY_DOWN) {
-            /* Aplica a mesma trigonometria, mas com os sinais invertidos.
-             * A nave "acelera para trás" na direção que o bico está apontando.
-             * Usei >> 8 (dividir por 256) para a ré ser mais fraca que a aceleração frontal.
-             */
-            player.dx -= GET_SIN(player.angle) >> 6;
-            player.dy += GET_COS(player.angle) >> 6;
-        }
-		
-		// --- LIMITADOR DE VELOCIDADE (CLAMPING) ---
-        // Trava o eixo X
-        if (player.dx > MAX_SPEED) player.dx = MAX_SPEED;
-        else if (player.dx < -MAX_SPEED) player.dx = -MAX_SPEED;
-
-        // Trava o eixo Y
-        if (player.dy > MAX_SPEED) player.dy = MAX_SPEED;
-        else if (player.dy < -MAX_SPEED) player.dy = -MAX_SPEED;
-
-		// APLICAÇÃO DA FÍSICA da nave (posição baseada na velocidade)
-		player.x += player.dx;
-		player.y += player.dy;
 
 		// --- FÍSICA DOS TIROS ---
         for (int i = 0; i < MAX_BULLETS; i++) {
@@ -260,50 +214,6 @@ int main(void) {
                 }
             }
         }
-
-		// CÓPIA TRUNCADA PARA DESENHO
-		int draw_x = player.x >> 8;
-		int draw_y = player.y >> 8;
-
-		// LÓGICA DE TELA INFINITA (Wrap-around)
-		if (draw_x < -PLAYER_SIZE) {
-			player.x = SCREEN_WIDTH << 8;
-		} else if (draw_x > SCREEN_WIDTH) {
-			player.x = -PLAYER_SIZE << 8;
-		}
-
-		if (draw_y < -PLAYER_SIZE) {
-            player.y = SCREEN_HEIGHT << 8;
-        } else if (draw_y > SCREEN_HEIGHT) {
-            player.y = -PLAYER_SIZE << 8;
-        }
-
-		// Atualiza a posição de desenho caso tenha saído da tela
-		draw_x = player.x >> 8;
-        draw_y = player.y >> 8;
-
-		// Como o hardware dobrou a "caixa" (de 16 para 32), o gráfico foi parar no meio dela.
-        // Nós subtraímos a metade do tamanho original (8 pixels) para recentralizar a nave
-        // na posição física exata onde o jogador acha que ela está.
-        int render_x = draw_x - (PLAYER_SIZE / 2);
-        int render_y = draw_y - (PLAYER_SIZE / 2);
-
-		// MATRIZ DE ROTAÇÃO
-        // Pega os valores da LUT e injeta na Matriz 0 da OAM
-        int cos_val = GET_COS(player.angle);
-        int sin_val = GET_SIN(player.angle);
-
-		affine[0].pa = cos_val;
-        affine[0].pb = sin_val;
-        affine[0].pc = -sin_val;
-        affine[0].pd = cos_val;
-
-		// RENDERIZAÇÃO
-        // ATTR0_ROTSCALE_DOUBLE avisa que o sprite vai girar e solicita uma área de buffer dupla para evitar clipping.
-        // ATTR1_ROTDATA(0) diz para ele usar a matriz que acabamos de configurar ali em cima.
-        shadow_oam[0].attr0 = (render_y & MASK_Y) | ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE;
-        shadow_oam[0].attr1 = (render_x & MASK_X) | ATTR1_SIZE_16 | ATTR1_ROTDATA(0);
-        shadow_oam[0].attr2 = 0;
 
 		// --- RENDERIZAÇÃO DOS TIROS ---
         for (int i = 0; i < MAX_BULLETS; i++) {
