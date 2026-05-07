@@ -1,21 +1,19 @@
 #include <gba.h>
-#include <stdbool.h>   // Necessário para o 'bool' funcionar
-#include "spaceship.h" // Import do sprite da nave e sua paleta
-#include "space_bg.h"  // Import do plano de fundo (opcional, pode ser usado para decorar a tela)
+#include <stdbool.h>
+#include <stdlib.h>
 
+// Import dos sprites
+#include "spaceship.h" 
+#include "space_bg.h"  
+#include "asteroids_g.h" 
+#include "asteroids_m.h"
+#include "asteroids_p.h"
 
-#define MASK_Y 0x00FF
-#define MASK_X 0x01FF
-#define VBLANK_IRQ_ENABLE 0x08
-#define MAX_BULLETS 10
-#define MAX_SPEED (4 << 8)
-
-const int SHEIGHT = 160;
-const int SWIDTH = 240;
-const int PLAYER_SIZE = 16;
+// Defines
+#include "config.h"   // Import do arquivo de configurações, onde definimos constantes
 
 // LUT de Seno e Cosseno (32 valores para 360 graus, ou seja, 11.25 graus por passo)
-const s16 sin_lut[32] = {
+const s16 sin_lut[32] __attribute__ ((section(".iwram"))) = {
     0, 50, 98, 142, 181, 212, 236, 251, 
     256, 251, 236, 212, 181, 142, 98, 50, 
     0, -50, -98, -142, -181, -212, -236, -251, 
@@ -23,7 +21,7 @@ const s16 sin_lut[32] = {
 };
 
 // Desenhando uma "esfera" de 8x8 pixels na mão
-const u8 bullet_gfx[64] = {
+const u8 bullet_gfx[64] __attribute__ ((section(".iwram"), aligned(4))) = {
     0,   0,   0,   0,   0,   0,   0,   0,
     0,   0,   0,   0,   0,   0,   0,   0,
     0,   0,   0,   0,   0,   0,   0,   0,
@@ -36,6 +34,7 @@ const u8 bullet_gfx[64] = {
 
 #define GET_SIN(a) (sin_lut[(a) & 31])
 #define GET_COS(a) (sin_lut[((a) + 8) & 31])
+#define SPRITE_TILE(pos) (SPRITE_GFX + ((pos) * 16))
 
 typedef struct {
     int x, y;
@@ -53,8 +52,15 @@ void cleanOam(OBJATTR* oam) {
 
 void loadSpritesInVram() {
 	// Método para carregar os gráficos e paletas dos sprites na memória de vídeo (VRAM) do GBA.
-	dmaCopy(spaceshipTiles, SPRITE_GFX, spaceshipTilesLen);
 	dmaCopy(spaceshipPal, SPRITE_PALETTE, spaceshipPalLen);
+    dmaCopy(asteroids_gPal, SPRITE_PALETTE + PAL_SIZE, asteroids_gPalLen);
+	dmaCopy(spaceshipTiles, SPRITE_GFX, spaceshipTilesLen);
+
+    // 2. Carrega os gráficos (Tiles) de cada tamanho para seus respectivos lugares na VRAM
+    // (Lembrando daquela matemática de offsets que fizemos antes)
+    dmaCopy(asteroids_gTiles, SPRITE_TILE(AST_G_TILE_POS), asteroids_gTilesLen);
+    dmaCopy(asteroids_mTiles, SPRITE_TILE(AST_M_TILE_POS), asteroids_mTilesLen);
+    dmaCopy(asteroids_pTiles, SPRITE_TILE(AST_P_TILE_POS), asteroids_pTilesLen);
 }
 
 void loadBackground() {
@@ -131,7 +137,14 @@ void createProgrammaticBullet() {
     }
 }
 
+void playerRotationControl(u16 keys, Entity* player) {
+    if (keys & KEY_LEFT)  player->angle--;
+    if (keys & KEY_RIGHT) player->angle++;
+}
+
 int main(void) {
+    srand(REG_TM0CNT);
+
 	initialDisplayConfig();
     
 	loadSpritesInVram();
@@ -141,8 +154,8 @@ int main(void) {
 	createProgrammaticBullet();
 
     Entity player;
-	player.x = ((SWIDTH/2) - (PLAYER_SIZE/2)) << 8;
-	player.y = ((SHEIGHT/2) - (PLAYER_SIZE/2)) << 8;
+	player.x = ((SCREEN_WIDTH/2) - (PLAYER_SIZE/2)) << 8;
+	player.y = ((SCREEN_HEIGHT/2) - (PLAYER_SIZE/2)) << 8;
 	player.dx = 0;
 	player.dy = 0;
 	player.active = true;
@@ -153,18 +166,30 @@ int main(void) {
         bullets[i].active = false;
     }
 
+    Entity asteroids[5];
+    for(int i = 0; i < 5; i++) {
+        asteroids[i].active = false;
+    }
+
 	OBJATTR shadow_oam[128];
 	OBJAFFINE* affine = (OBJAFFINE*)shadow_oam;
 	cleanOam(shadow_oam);
+
+    int asteroid_angle = rand() & 31;
+
+    asteroids[0].angle = asteroid_angle;
+         asteroids[0].active = true;
+         asteroids[0].x = 50;
+         asteroids[0].y = 50;
+         asteroids[0].dx = GET_SIN(asteroid_angle) >> 3;
+         asteroids[0].dy = -(GET_COS(asteroid_angle) >> 3);
 
     while (1) {
         scanKeys();
 		u16 keys = keysHeld();
 		u16 keys_pressed = keysDown();
 
-		// CONTROLE DE ROTAÇÃO
-		if (keys & KEY_LEFT)  player.angle--;
-        if (keys & KEY_RIGHT) player.angle++;
+		playerRotationControl(keys, &player);
 
 		// CONTROLE DE MOTOR (Inércia baseada no ângulo usando >> 4 como redutor de potência)
         if (keys & KEY_UP) {
@@ -207,8 +232,8 @@ int main(void) {
                 int b_draw_y = bullets[i].y >> 8;
 
                 // Se o tiro saiu da tela, nós desativamos ele.
-                // Usamos uma margem de -8 até SHEIGHT/SWIDTH para ele sumir suavemente
-                if (b_draw_x < -8 || b_draw_x > SWIDTH || b_draw_y < -8 || b_draw_y > SHEIGHT) {
+                // Usamos uma margem de -8 até SCREEN_HEIGHT/SCREEN_WIDTH para ele sumir suavemente
+                if (b_draw_x < -8 || b_draw_x > SCREEN_WIDTH || b_draw_y < -8 || b_draw_y > SCREEN_HEIGHT) {
                     bullets[i].active = false;
                 }
             }
@@ -242,14 +267,14 @@ int main(void) {
 
 		// LÓGICA DE TELA INFINITA (Wrap-around)
 		if (draw_x < -PLAYER_SIZE) {
-			player.x = SWIDTH << 8;
-		} else if (draw_x > SWIDTH) {
+			player.x = SCREEN_WIDTH << 8;
+		} else if (draw_x > SCREEN_WIDTH) {
 			player.x = -PLAYER_SIZE << 8;
 		}
 
 		if (draw_y < -PLAYER_SIZE) {
-            player.y = SHEIGHT << 8;
-        } else if (draw_y > SHEIGHT) {
+            player.y = SCREEN_HEIGHT << 8;
+        } else if (draw_y > SCREEN_HEIGHT) {
             player.y = -PLAYER_SIZE << 8;
         }
 
@@ -276,9 +301,9 @@ int main(void) {
 		// RENDERIZAÇÃO
         // ATTR0_ROTSCALE_DOUBLE avisa que o sprite vai girar e solicita uma área de buffer dupla para evitar clipping.
         // ATTR1_ROTDATA(0) diz para ele usar a matriz que acabamos de configurar ali em cima.
-        shadow_oam[0].attr0 = (render_y & MASK_Y) | ATTR0_COLOR_256 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE;
+        shadow_oam[0].attr0 = (render_y & MASK_Y) | ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE;
         shadow_oam[0].attr1 = (render_x & MASK_X) | ATTR1_SIZE_16 | ATTR1_ROTDATA(0);
-        shadow_oam[0].attr2 = ATTR2_PALETTE(0) | 0;
+        shadow_oam[0].attr2 = 0;
 
 		// --- RENDERIZAÇÃO DOS TIROS ---
         for (int i = 0; i < MAX_BULLETS; i++) {
@@ -301,6 +326,21 @@ int main(void) {
                 // Se o tiro foi destruído (saiu da tela), nós o escondemos
                 shadow_oam[i+1].attr0 = ATTR0_DISABLED;
             }
+        }
+         // Atualiza posição do asteroid
+         asteroids[0].x += asteroids[0].dx;
+         asteroids[0].y += asteroids[0].dy;
+
+        if (asteroids[0].active) {
+            int a_draw_x = asteroids[0].x >> 8;
+            int a_draw_y = asteroids[0].y >> 8;
+        // Renderizar um asteroid grande de teste
+        // Grava os atributos: formato quadrado, tamanho 32x32
+            shadow_oam[11].attr0 = (a_draw_y & MASK_Y) | ATTR0_COLOR_16 | ATTR0_SQUARE;
+            shadow_oam[11].attr1 = (a_draw_x & MASK_X) | ATTR1_SIZE_32;
+            shadow_oam[11].attr2 = (AST_G_TILE_POS) | ATTR2_PALETTE(1); // Usa a paleta do asteroide (que está no índice 1, porque a do player é a 0)
+        } else {
+            shadow_oam[11].attr0 = ATTR0_DISABLED;
         }
 
 		VBlankIntrWait();

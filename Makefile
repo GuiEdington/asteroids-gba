@@ -78,11 +78,14 @@ CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
-# Procura todos os arquivos PNG na pasta de gráficos
-PNGFILES    := $(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
+# Procura todos os arquivos PNG e BMP na pasta de gráficos
+# Lista todos os arquivos de imagem (png e bmp) e transforma a lista em nomes de arquivos .h
+# Procura todos os arquivos PNG e BMP na pasta de gráficos (usando a variável GRAPHICS definida como gfx)
+IMG_SOURCES := $(foreach dir,$(GRAPHICS),$(wildcard $(dir)/*.png) $(wildcard $(dir)/*.bmp))
+IMGFILES    := $(notdir $(IMG_SOURCES))
 
-# Define que para cada PNG, teremos um arquivo .h correspondente
-export HFILES      := $(PNGFILES:.png=.h)
+# Define os arquivos .h correspondentes, tratando tanto .png quanto .bmp
+export HFILES := $(patsubst %.png,%.h,$(patsubst %.bmp,%.h,$(IMGFILES)))
 
 ifneq ($(strip $(MUSIC)),)
 	export AUDIOFILES	:=	$(foreach dir,$(notdir $(wildcard $(MUSIC)/*.*)),$(CURDIR)/$(MUSIC)/$(dir))
@@ -105,7 +108,9 @@ endif
 
 export OFILES_BIN := $(addsuffix .o,$(BINFILES))
 
-export OFILES_SOURCES := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o) $(PNGFILES:.png=.o)
+# Converte a lista de imagens (seja png ou bmp) para arquivos de objeto .o
+export OFILES_SOURCES := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o) \
+                         $(patsubst %.png,%.o,$(patsubst %.bmp,%.o,$(IMGFILES)))
 
 export OFILES := $(OFILES_BIN) $(OFILES_SOURCES)
 
@@ -169,11 +174,25 @@ soundbank.bin soundbank.h : $(AUDIOFILES)
 #---------------------------------------------------------------------------------
 # Regra para processar arquivos PNG com o GRIT
 #---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
+# Regra para processar arquivos de imagem (PNG ou BMP) com o GRIT
+#---------------------------------------------------------------------------------
+
+# --- Regras para arquivos PNG ---
 %.h %.c : %.png %.grit
 	@echo $(notdir $<)
 	@grit $< -ftc -o$*
 
 %.h %.c : %.png
+	@echo $(notdir $<)
+	@grit $< -ftc -o$*
+
+# --- Regras para arquivos BMP ---
+%.h %.c : %.bmp %.grit
+	@echo $(notdir $<)
+	@grit $< -ftc -o$*
+
+%.h %.c : %.bmp
 	@echo $(notdir $<)
 	@grit $< -ftc -o$*
 

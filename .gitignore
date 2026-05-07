@@ -6,3 +6,7 @@ build/
 *.o
 *.gba
 *.elf
+
+# Ignorar configurações locais da IDE
+.vscode/
+.idea/
