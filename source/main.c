@@ -11,7 +11,7 @@
 
 // Defines
 #include "config.h"   // Import do arquivo de configurações, onde definimos constantes
-#include "player.h"
+#include "entities/player.h"
 
 
 

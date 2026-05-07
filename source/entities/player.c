@@ -1,5 +1,5 @@
 #include "player.h"
-#include "config.h" 
+#include "../config.h" 
 
 void player_init(Player *p, OBJATTR *attribs, int tile_index) {
     p->x = ((SCREEN_WIDTH/2) - (PLAYER_SIZE/2)) << FLOAT_SHIFT;
