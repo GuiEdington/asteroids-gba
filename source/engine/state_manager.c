@@ -1,0 +1,28 @@
+#include "state_manager.h"
+#include <stddef.h> // Para a macro NULL
+
+// Variável estática: Escopo restrito a este arquivo!
+static const Scene* current_scene = NULL;
+
+void set_scene(const Scene* new_scene) {
+    // Aqui você poderia adicionar lógica extra no futuro, 
+    // como chamar um current_scene->exit() antes de trocar!
+    
+    current_scene = new_scene;
+    
+    if (current_scene != NULL && current_scene->init != NULL) {
+        current_scene->init();
+    }
+}
+
+void sm_update() {
+    if (current_scene != NULL && current_scene->update != NULL) {
+        current_scene->update();
+    }
+}
+
+void sm_draw() {
+    if (current_scene != NULL && current_scene->draw != NULL) {
+        current_scene->draw();
+    }
+}

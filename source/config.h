@@ -1,5 +1,6 @@
 // config.h
 #pragma once // Isso impede que o arquivo seja lido duas vezes e cause erros!
+#include <gba_types.h>
 
 // --- CONFIGURAÇÕES DE TELA ---
 #define SCREEN_WIDTH  240
@@ -11,7 +12,6 @@
 #define VBLANK_IRQ_ENABLE 0x08
 
 // --- CONFIGURAÇÕES DO JOGO ---
-#define MAX_BULLETS 10
 #define MAX_SPEED (4 << 8)
 
 

@@ -1,7 +1,7 @@
 #include "player.h"
 #include "../config.h" 
 
-void player_init(Player *p, OBJATTR *attribs, int tile_index) {
+void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index) {
     p->x = ((SCREEN_WIDTH/2) - (PLAYER_SIZE/2)) << FLOAT_SHIFT;
 	p->y = ((SCREEN_HEIGHT/2) - (PLAYER_SIZE/2)) << FLOAT_SHIFT;
     p->dx = 0;
@@ -9,12 +9,13 @@ void player_init(Player *p, OBJATTR *attribs, int tile_index) {
     p->angle = 0;
     p->tile_index = tile_index;
     p->obj = attribs;
+    p->affine = affine;
     p->active = true;
 
     // Configuração inicial do Hardware (OAM)
     p->obj->attr0 = ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE; 
     p->obj->attr1 = ATTR1_SIZE_16 | ATTR1_ROTDATA(0);
-    p->obj->attr2 = tile_index | ATTR2_PALETTE(0);
+    p->obj->attr2 = ATTR2_PALETTE(0) | tile_index;
 }
 
 void player_update(Player *p, u16 keys) {
@@ -56,7 +57,7 @@ void player_update(Player *p, u16 keys) {
     if (p->y > SCREEN_HEIGHT << FLOAT_SHIFT) p->y = -PLAYER_SIZE << FLOAT_SHIFT;
 }
 
-void player_draw(Player *p, OBJAFFINE *affine) {
+void player_draw(Player *p) {
     // Converte ponto fixo de volta para pixels inteiros para a OAM
     int screen_x = (p->x >> FLOAT_SHIFT) ;
     int screen_y = (p->y >> FLOAT_SHIFT) ;
@@ -70,8 +71,8 @@ void player_draw(Player *p, OBJAFFINE *affine) {
     int cos_val = GET_COS(p->angle);
     int sin_val = GET_SIN(p->angle);
 
-    affine[0].pa = cos_val;
-    affine[0].pb = sin_val;
-    affine[0].pc = -sin_val;
-    affine[0].pd = cos_val;
+    p->affine->pa = cos_val;
+    p->affine->pb = sin_val;
+    p->affine->pc = -sin_val;
+    p->affine->pd = cos_val;
 }

@@ -10,10 +10,11 @@
 #include "asteroids_p.h"
 
 // Defines
-#include "config.h"   // Import do arquivo de configurações, onde definimos constantes
+#include "config.h"
 #include "entities/player.h"
-
-
+#include "screens/scene.h"
+#include "engine/state_manager.h"
+#include "screens/level_game.c"
 
 // Desenhando uma "esfera" de 8x8 pixels na mão
 const u8 bullet_gfx[64] __attribute__ ((section(".iwram"), aligned(4))) = {
@@ -29,19 +30,8 @@ const u8 bullet_gfx[64] __attribute__ ((section(".iwram"), aligned(4))) = {
 
 #define SPRITE_TILE(pos) (SPRITE_GFX + ((pos) * 16))
 
-typedef struct {
-    int x, y;
-    int dx, dy;
-    int angle;
-    bool active;
-} Entity;
-
-void cleanOam(OBJATTR* oam) {
-	// Limpa a OAM (Object Attribute Memory) para garantir que nenhum sprite residual seja renderizado.
-	for(int i = 0; i < 128; i++) {
-		oam[i].attr0 = ATTR0_DISABLED;
-	}
-}
+extern const Scene level_game; // Declaramos a cena para o State Manager
+extern OBJATTR shadow_oam[128];
 
 void loadSpritesInVram() {
 	// Método para carregar os gráficos e paletas dos sprites na memória de vídeo (VRAM) do GBA.
@@ -141,119 +131,13 @@ int main(void) {
 
 	createProgrammaticBullet();
 
-	Entity bullets[MAX_BULLETS];
-    for(int i = 0; i < MAX_BULLETS; i++) {
-        bullets[i].active = false;
-    }
-
-    Entity asteroids[5];
-    for(int i = 0; i < 5; i++) {
-        asteroids[i].active = false;
-    }
-
-	OBJATTR shadow_oam[128];
-	OBJAFFINE* affine = (OBJAFFINE*)shadow_oam;
-	cleanOam(shadow_oam);
-    Player player;
-    player_init(&player, &shadow_oam[0], SPACESHIP_TILE_POS);
-
-    int asteroid_angle = rand() & 31;
-
-    asteroids[0].angle = asteroid_angle;
-         asteroids[0].active = true;
-         asteroids[0].x = 50;
-         asteroids[0].y = 50;
-         asteroids[0].dx = GET_SIN(asteroid_angle) >> 3;
-         asteroids[0].dy = -(GET_COS(asteroid_angle) >> 3);
+    set_scene(&level_game); // Diz ao State Manager para carregar a fase do jogo
 
     while (1) {
-        scanKeys();
-		u16 keys = keysHeld();
-		u16 keys_pressed = keysDown();
-        player_update(&player, keys);
-        player_draw(&player, affine);
-
-
-		// --- FÍSICA DOS TIROS ---
-        for (int i = 0; i < MAX_BULLETS; i++) {
-            if (bullets[i].active) {
-                // Move o tiro
-                bullets[i].x += bullets[i].dx;
-                bullets[i].y += bullets[i].dy;
-
-                // Converte para a posição real da tela para checar os limites
-                int b_draw_x = bullets[i].x >> 8;
-                int b_draw_y = bullets[i].y >> 8;
-
-                // Se o tiro saiu da tela, nós desativamos ele.
-                // Usamos uma margem de -8 até SCREEN_HEIGHT/SCREEN_WIDTH para ele sumir suavemente
-                if (b_draw_x < -8 || b_draw_x > SCREEN_WIDTH || b_draw_y < -8 || b_draw_y > SCREEN_HEIGHT) {
-                    bullets[i].active = false;
-                }
-            }
-        }
-
-		// CONTROLE DE TIRO
-        if (keys_pressed & KEY_A) {
-            // Procura a primeira bala desativada no array para disparar
-            for (int i = 0; i < MAX_BULLETS; i++) {
-                if (!bullets[i].active) {
-                    bullets[i].active = true;
-                    
-                    // A bala nasce perfeitamente no centro da nave
-                    bullets[i].x = player.x + (4 << 8); 
-                    bullets[i].y = player.y + (4 << 8);
-                    
-                    // Calculamos a velocidade da bala baseada no ângulo do bico da nave.
-                    // Multiplicamos o Seno/Cosseno usando << 1 para o tiro ser 
-                    // bem mais rápido que a velocidade máxima da nave.
-                    bullets[i].dx = GET_SIN(player.angle) << 1;
-                    bullets[i].dy = -(GET_COS(player.angle) << 1);
-                    
-                    break; // Sai do loop para atirar apenas uma vez por clique
-                }
-            }
-        }
-
-		// --- RENDERIZAÇÃO DOS TIROS ---
-        for (int i = 0; i < MAX_BULLETS; i++) {
-            
-            // Usamos [i + 1] na shadow_oam porque o índice 0 é a sua nave!
-            // Se usássemos apenas [i], o primeiro tiro apagaria o player da tela.
-            
-            if (bullets[i].active) {
-                // Remove o ponto fixo (>> 8) para obter o pixel real na tela
-                int b_draw_x = bullets[i].x >> 8;
-                int b_draw_y = bullets[i].y >> 8;
-                
-                // Grava os atributos: formato quadrado, tamanho 8x8
-                shadow_oam[i+1].attr0 = (b_draw_y & MASK_Y) | ATTR0_COLOR_256 | ATTR0_SQUARE;
-                shadow_oam[i+1].attr1 = (b_draw_x & MASK_X) | ATTR1_SIZE_8;
-                
-                // Aponta para o Tile 32 (a bolinha branca que criamos no C)
-                shadow_oam[i+1].attr2 = ATTR2_PALETTE(0) | 32; 
-            } else {
-                // Se o tiro foi destruído (saiu da tela), nós o escondemos
-                shadow_oam[i+1].attr0 = ATTR0_DISABLED;
-            }
-        }
-         // Atualiza posição do asteroid
-         asteroids[0].x += asteroids[0].dx;
-         asteroids[0].y += asteroids[0].dy;
-
-        if (asteroids[0].active) {
-            int a_draw_x = asteroids[0].x >> 8;
-            int a_draw_y = asteroids[0].y >> 8;
-        // Renderizar um asteroid grande de teste
-        // Grava os atributos: formato quadrado, tamanho 32x32
-            shadow_oam[11].attr0 = (a_draw_y & MASK_Y) | ATTR0_COLOR_16 | ATTR0_SQUARE;
-            shadow_oam[11].attr1 = (a_draw_x & MASK_X) | ATTR1_SIZE_32;
-            shadow_oam[11].attr2 = (AST_G_TILE_POS) | ATTR2_PALETTE(1); // Usa a paleta do asteroide (que está no índice 1, porque a do player é a 0)
-        } else {
-            shadow_oam[11].attr0 = ATTR0_DISABLED;
-        }
-
-		VBlankIntrWait();
+		sm_update();        
+        sm_draw();
+		
+        VBlankIntrWait();
 
 		dmaCopy(shadow_oam, OAM, 128 * sizeof(OBJATTR));
     }
