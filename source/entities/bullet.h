@@ -4,9 +4,6 @@
 #include <gba.h>
 #include <stdbool.h>
 
-// Usamos ponto fixo 8.8 (multiplicamos por 256)
-#define FLOAT_SHIFT 8
-
 typedef struct {
     int x, y;          // Posição (Ponto Fixo)
     int dx, dy;        // Vetores de Velocidade (Ponto Fixo)

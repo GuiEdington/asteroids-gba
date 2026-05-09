@@ -99,12 +99,9 @@ void initialDisplayConfig() {
 void createProgrammaticBullet() {
     // 1. Configura a Cor: O índice 255 da paleta vai ser Branco Puro.
     SPRITE_PALETTE[255] = RGB5(31, 31, 31);
-
-    // Usamos ponteiros de 16 bits (u16*) para forçar a CPU a usar o barramento correto
-    u16* vram_obj16 = (u16*)SPRITE_GFX;
     
     // O pulo do gato: 32 blocos * 16 (meias-palavras de 16 bits) = 1024 bytes de offset
-    u16* destination16 = vram_obj16 + (32 * 16);
+    u16* destination16 = SPRITE_TILE(BULLET_TILE_POS);
 
     // 3. Forja o gráfico direto na Placa de Vídeo em pacotes de 16 bits
     // Como agrupamos de 2 em 2, o laço só roda 32 vezes (para os 64 pixels)

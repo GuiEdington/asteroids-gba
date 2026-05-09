@@ -12,7 +12,7 @@ void bullet_init(Bullet *b, int start_x, int start_y, int angle, OBJATTR *attrib
 
     b->obj->attr0 = ATTR0_COLOR_256 | ATTR0_SQUARE; 
     b->obj->attr1 = ATTR1_SIZE_8;
-    b->obj->attr2 = ATTR2_PALETTE(0) | 32;
+    b->obj->attr2 = ATTR2_PALETTE(0) | BULLET_TILE_POS;
 }
 
 void bullet_update(Bullet *b) {

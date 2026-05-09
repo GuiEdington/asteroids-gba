@@ -2,6 +2,7 @@
 #include "scene.h"
 #include "../entities/player.h"
 #include "../engine/bullet_manager.h"
+#include "../engine/asteroid_manager.h"
 // No futuro, você incluirá "bullet.h" e "asteroid.h" aqui
 
 // ==========================================
@@ -27,6 +28,8 @@ void game_init() {
     // 2. Inicializa entidades
     player_init(&player, &shadow_oam[0], &shadow_affine[0], 0); // Player fica no índice 0
     bullet_manager_init(&shadow_oam[1], 1); // Tiros começam no índice 1
+    asteroid_manager_init(&shadow_oam[18], 18); // Asteroides começam no índice 18 (1 para player + 16 para tiros)
+    asteroid_manager_spawn(6);
 }
 
 // ==========================================
@@ -41,6 +44,7 @@ void game_update() {
         bullet_manager_spawn(player.x, player.y, player.angle);
     }
     bullet_manager_update();
+    asteroid_manager_update();
 }
 
 // ==========================================
@@ -51,6 +55,7 @@ void game_draw() {
     // Assumindo que você alterou o player_draw para atualizar a shadow_oam passada no init
     player_draw(&player); 
     bullet_manager_draw(); // Isso vai atualizar a shadow_oam dos tiros
+    asteroid_manager_draw();
 }
 
 // ==========================================
