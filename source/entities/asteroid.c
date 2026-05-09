@@ -4,7 +4,19 @@
 void asteroid_init(Asteroid *a, int start_x, int start_y, enum AsteroidSize size, int angle, OBJATTR *attribs) {
     a->x = start_x << FLOAT_SHIFT;
     a->y = start_y << FLOAT_SHIFT;
-    int speed = (MAX_SPEED >> (size >> 3)); // Velocidade baseada no tamanho
+    int base_speed = (MAX_SPEED >> (ASTEROID_LARGE >> 3)); // Mantém velocidade atual do LARGE
+    int speed = base_speed;
+    switch (size) {
+        case ASTEROID_MEDIUM:
+            speed = base_speed + (base_speed >> 2); // +25%
+            break;
+        case ASTEROID_SMALL:
+            speed = base_speed + (base_speed >> 1); // +50%
+            break;
+        case ASTEROID_LARGE:
+        default:
+            break;
+    }
     a->dx = (GET_SIN(angle) * speed) >> 8;
     a->dy = (-GET_COS(angle) * speed) >> 8;
     a->size = size;

@@ -1,4 +1,5 @@
 #include "bullet_manager.h"
+#include "asteroid_manager.h"
 #include <stddef.h>
 
 // Estado Privado do Manager (Static garante que ninguém fora daqui acesse)
@@ -33,6 +34,20 @@ void bullet_manager_update() {
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
             bullet_update(&bullets[i]); // A física está dentro de bullet.c agora!
+            if (bullets[i].active) {
+                // O raio da nossa bala 8x8 é 4 pixels
+                int hit_index = asteroid_manager_check_hit(bullets[i].x, bullets[i].y, 4);
+
+                if (hit_index != -1) {
+                    // Destrói a bala
+                    bullets[i].active = false;
+                    shadow_oam_ref[oam_offset + i].attr0 = ATTR0_DISABLED;
+
+                    // Destrói o asteroide (que vai desencadear o spawn dos filhos)
+                    destroy_asteroid(hit_index); 
+                    bullet_destroy(&bullets[i]); // Garante que a bala seja escondida da OAM imediatamente
+                }
+            }
         }
     }
 }
