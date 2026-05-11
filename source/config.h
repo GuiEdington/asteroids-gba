@@ -23,6 +23,11 @@
 #define BULLET_TILE_POS (AST_P_TILE_POS + 8)
 #define PAL_SIZE 16
 
+// Quantidade de tiles que cada sprite ocupa na VRAM
+#define TILE_OFFSET_LARGE  16  // 32x32 = 16 tiles
+#define TILE_OFFSET_MEDIUM 4   // 16x16 = 4 tiles
+#define TILE_OFFSET_SMALL  1   // 8x8   = 1 tile
+
 // LUT de Seno e Cosseno (32 valores para 360 graus, ou seja, 11.25 graus por passo)
 extern const s16 sin_lut[32] __attribute__ ((section(".iwram")));
 

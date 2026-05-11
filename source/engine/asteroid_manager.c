@@ -129,11 +129,11 @@ void destroy_asteroid(int index) {
 
     Asteroid *a = &asteroid_pool[index];
     if (!a->active) return; // Já está inativo
-
+    int free_index = get_next_free_index();
     asteroid_destroy(a); // Chama a função de destruição da entidade (que pode ser usada para efeitos, sons, etc)
 
     // Se não for um asteroide pequeno, spawn dos filhos
-    int free_index = get_next_free_index();
+    
     if (a->size == ASTEROID_LARGE) {
         if (free_index != -1) {
             asteroid_init(&asteroid_pool[index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_MEDIUM, rand(), &oam_ref[oam_offset + index]);

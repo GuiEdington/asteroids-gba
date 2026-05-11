@@ -44,8 +44,8 @@ void bullet_manager_update() {
                     shadow_oam_ref[oam_offset + i].attr0 = ATTR0_DISABLED;
 
                     // Destrói o asteroide (que vai desencadear o spawn dos filhos)
-                    destroy_asteroid(hit_index); 
                     bullet_destroy(&bullets[i]); // Garante que a bala seja escondida da OAM imediatamente
+                    destroy_asteroid(hit_index); 
                 }
             }
         }

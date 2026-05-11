@@ -29,15 +29,15 @@ void asteroid_init(Asteroid *a, int start_x, int start_y, enum AsteroidSize size
     switch (size) {
         case ASTEROID_LARGE:
             a->obj->attr1 = ATTR1_SIZE_32;
-            a->obj->attr2 = ATTR2_PALETTE(1) | (AST_G_TILE_POS + ast_type * ( ASTEROID_LARGE >> 1));
+            a->obj->attr2 = ATTR2_PALETTE(1) | (AST_G_TILE_POS + ast_type * TILE_OFFSET_LARGE);
             break;
         case ASTEROID_MEDIUM:
             a->obj->attr1 = ATTR1_SIZE_16;
-            a->obj->attr2 = ATTR2_PALETTE(1) | (AST_M_TILE_POS + ast_type * ASTEROID_MEDIUM);
+            a->obj->attr2 = ATTR2_PALETTE(1) | (AST_M_TILE_POS + ast_type * TILE_OFFSET_MEDIUM);
             break;
         case ASTEROID_SMALL:
             a->obj->attr1 = ATTR1_SIZE_8;
-            a->obj->attr2 = ATTR2_PALETTE(1) | (AST_P_TILE_POS + ast_type * ASTEROID_SMALL);
+            a->obj->attr2 = ATTR2_PALETTE(1) | (AST_P_TILE_POS + ast_type * TILE_OFFSET_SMALL);
             break;
     }
 }
