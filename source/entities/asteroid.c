@@ -1,7 +1,7 @@
 #include "asteroid.h"
 #include "../config.h"
 
-void asteroid_init(Asteroid *a, int start_x, int start_y, enum AsteroidSize size, int angle, OBJATTR *attribs) {
+void asteroid_init(Asteroid *a, int start_x, int start_y, enum AsteroidSize size, u8 angle, OBJATTR *attribs) {
     a->x = start_x << FLOAT_SHIFT;
     a->y = start_y << FLOAT_SHIFT;
     int base_speed = (MAX_SPEED >> (ASTEROID_LARGE >> 3)); // Mantém velocidade atual do LARGE

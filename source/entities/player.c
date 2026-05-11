@@ -20,19 +20,19 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
 
 void player_update(Player *p, u16 keys) {
     // 1. Rotação (Gerencia apenas o ângulo)
-    if (keys & KEY_LEFT)  p->angle--;
-    if (keys & KEY_RIGHT) p->angle++;
+    if (keys & KEY_LEFT)  p->angle -= 4;
+    if (keys & KEY_RIGHT) p->angle += 4;
 
     // 2. Aceleração (Física de Asteroids)
     if (keys & KEY_UP) {
-        p->dx += GET_SIN(p->angle) >> 4; 
-        p->dy -= GET_COS(p->angle) >> 4; 
+        p->dx += GET_SIN(p->angle) >> 3; 
+        p->dy -= GET_COS(p->angle) >> 3; 
     }
 
     // Retro propulsão (Freio)
     if (keys & KEY_DOWN) {
-        p->dx -= GET_SIN(p->angle) >> 6;
-        p->dy += GET_COS(p->angle) >> 6;
+        p->dx -= GET_SIN(p->angle) >> 5;
+        p->dy += GET_COS(p->angle) >> 5;
     }
 
     // 3. Fricção (Opcional: faz a nave parar aos poucos)

@@ -22,7 +22,7 @@ enum AsteroidSize {
 };
 
 // Métodos "Públicos"
-void asteroid_init(Asteroid *a, int start_x, int start_y, enum AsteroidSize size, int angle, OBJATTR *attribs);
+void asteroid_init(Asteroid *a, int start_x, int start_y, enum AsteroidSize size, u8 angle, OBJATTR *attribs);
 void asteroid_update(Asteroid *a);
 void asteroid_draw(Asteroid *a);
 void asteroid_destroy(Asteroid *a);

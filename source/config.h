@@ -31,7 +31,7 @@
 // LUT de Seno e Cosseno (32 valores para 360 graus, ou seja, 11.25 graus por passo)
 extern const s16 sin_lut[32] __attribute__ ((section(".iwram")));
 
-#define GET_SIN(a) (sin_lut[(a) & 31])
-#define GET_COS(a) (sin_lut[((a) + 8) & 31])
+#define GET_SIN(a) (sin_lut[(u8)(a)])
+#define GET_COS(a) (sin_lut[((u8)((a) + 64))])
 
 #define FLOAT_SHIFT 8

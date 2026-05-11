@@ -11,7 +11,7 @@
 typedef struct {
     int x, y;          // Posição (Ponto Fixo)
     int dx, dy;        // Vetores de Velocidade (Ponto Fixo)
-    int angle;         // Índice da LUT (0-31)
+    u8 angle;         // Índice da LUT de Seno/Cosseno (0-255)
     OBJATTR *obj;      // Ponteiro para o atributo na OAM
     OBJAFFINE *affine;  // Estrutura para rotação (se necessário)
     int tile_index;    // Índice do tile inicial na VRAM

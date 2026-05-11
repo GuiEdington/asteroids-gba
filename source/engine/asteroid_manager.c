@@ -41,7 +41,7 @@ void asteroid_manager_spawn(int count) {
     for (int i = 0; i < count; i++) {
         int spawn_x, spawn_y;
         get_random_spawn_position(&spawn_x, &spawn_y, size);
-        asteroid_init(&asteroid_pool[i], spawn_x, spawn_y, size, rand(), &oam_ref[oam_offset + i]);
+        asteroid_init(&asteroid_pool[i], spawn_x, spawn_y, size, rand() & 255, &oam_ref[oam_offset + i]);
     }
 }
 
@@ -133,16 +133,15 @@ void destroy_asteroid(int index) {
     asteroid_destroy(a); // Chama a função de destruição da entidade (que pode ser usada para efeitos, sons, etc)
 
     // Se não for um asteroide pequeno, spawn dos filhos
-    
     if (a->size == ASTEROID_LARGE) {
         if (free_index != -1) {
-            asteroid_init(&asteroid_pool[index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_MEDIUM, rand(), &oam_ref[oam_offset + index]);
-            asteroid_init(&asteroid_pool[free_index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_MEDIUM, rand(), &oam_ref[oam_offset + free_index]);
+            asteroid_init(&asteroid_pool[index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_MEDIUM, rand() & 255, &oam_ref[oam_offset + index]);
+            asteroid_init(&asteroid_pool[free_index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_MEDIUM, rand() & 255, &oam_ref[oam_offset + free_index]);
         }
     } else if (a->size == ASTEROID_MEDIUM) {
         if (free_index != -1) {
-            asteroid_init(&asteroid_pool[index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_SMALL, rand(), &oam_ref[oam_offset + index]);
-            asteroid_init(&asteroid_pool[free_index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_SMALL, rand(), &oam_ref[oam_offset + free_index]);
+            asteroid_init(&asteroid_pool[index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_SMALL, rand() & 255, &oam_ref[oam_offset + index]);
+            asteroid_init(&asteroid_pool[free_index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_SMALL, rand() & 255, &oam_ref[oam_offset + free_index]);
         }
     }
 }
