@@ -11,8 +11,7 @@
 // Declaramos a próxima cena para podermos fazer a transição
 extern const Scene level_game;
 
-// Variáveis de Escopo Local (Protegidas pelo static)
-static int bg_scroll_x = 0;
+int title_bg_scroll_x = 0;
 static u32 title_frame_counter = 0;
 
 // Adicione isso no topo do arquivo para converter o bloco na posição exata dos bits
@@ -21,7 +20,7 @@ static u32 title_frame_counter = 0;
 
 static void title_init() {
     title_frame_counter = 0;
-    bg_scroll_x = 0;
+    title_bg_scroll_x = 0;
 
     // ==========================================
     // 1. CARREGA O ESPAÇO (Fundo)
@@ -73,7 +72,7 @@ static void title_update() {
     // A. Animação do Espaço Infinito
     // Desloca a câmera 1 pixel para a esquerda a cada frame.
     if ((title_frame_counter & 3) == 0) { // Desloca a cada 4 frames (1/15 de segundo)
-        bg_scroll_x = (bg_scroll_x - 1) & 0xFF; 
+        title_bg_scroll_x = (title_bg_scroll_x - 1) & 0xFF; 
     }
 
     // B. Leitura dos Botões
@@ -95,7 +94,7 @@ static void title_update() {
 // 3. RENDERIZAÇÃO (Piscar e Atualizar a OAM)
 // -------------------------------------------------------------
 static void title_draw() {
-    REG_BG0HOFS = bg_scroll_x;
+    REG_BG0HOFS = title_bg_scroll_x;
     // A. Lógica do Texto Piscante
     // 32 em binário cria um ciclo de liga/desliga a cada meio segundo
     if (title_frame_counter & 32) {

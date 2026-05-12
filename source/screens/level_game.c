@@ -3,7 +3,9 @@
 #include "../entities/player.h"
 #include "../engine/bullet_manager.h"
 #include "../engine/asteroid_manager.h"
-// No futuro, você incluirá "bullet.h" e "asteroid.h" aqui
+#include "../engine/background_manager.h"
+
+// Sprites
 #include "spaceship.h"
 #include "asteroids_g.h"
 #include "asteroids_m.h"
@@ -72,6 +74,7 @@ void game_init() {
 
     OBJAFFINE *shadow_affine = (OBJAFFINE*)shadow_oam; // Reinterpretamos o início da shadow_oam como uma área de OBJAFFINE para o player
     // 2. Inicializa entidades
+    bg_manager_init();
     player_init(&player, &shadow_oam[0], &shadow_affine[0], 0); // Player fica no índice 0
     bullet_manager_init(&shadow_oam[1], 1); // Tiros começam no índice 1
     asteroid_manager_init(&shadow_oam[18], 18); // Asteroides começam no índice 18 (1 para player + 16 para tiros)
@@ -91,6 +94,7 @@ void game_update() {
     }
     bullet_manager_update();
     asteroid_manager_update();
+    bg_manager_update(player.dx, player.dy);
 }
 
 // ==========================================
