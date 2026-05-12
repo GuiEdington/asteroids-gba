@@ -54,3 +54,4 @@ Abra o arquivo `.gba` gerado no seu emulador. Via terminal, você pode rodar dir
 # References
 
 * https://www.reddit.com/r/PixelArt/comments/jy89x7/new_spaceship_that_i_made_i_am_still_quite_new_to/
+* https://deep-fold.itch.io/space-background-generator
