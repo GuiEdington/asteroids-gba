@@ -25,8 +25,8 @@ void player_update(Player *p, u16 keys) {
 
     // 2. Aceleração (Física de Asteroids)
     if (keys & KEY_UP) {
-        p->dx += GET_SIN(p->angle) >> 3; 
-        p->dy -= GET_COS(p->angle) >> 3; 
+        p->dx += (GET_SIN(p->angle) << 1) >> 3; 
+        p->dy -= (GET_COS(p->angle) << 1) >> 3; 
     }
 
     // Retro propulsão (Freio)
@@ -35,9 +35,9 @@ void player_update(Player *p, u16 keys) {
         p->dy += GET_COS(p->angle) >> 5;
     }
 
-    // 3. Fricção (Opcional: faz a nave parar aos poucos)
-    // p->dx = (p->dx * 250) >> 8; 
-    // p->dy = (p->dy * 250) >> 8;
+    // Fricção (Faz a nave parar aos poucos)
+    p->dx = (p->dx * 250) >> 8; 
+    p->dy = (p->dy * 250) >> 8;
 
     if (p->dx > MAX_SPEED) p->dx = MAX_SPEED;
     else if (p->dx < -MAX_SPEED) p->dx = -MAX_SPEED;
