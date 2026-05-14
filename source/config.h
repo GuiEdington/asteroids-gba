@@ -37,3 +37,7 @@ extern const u8 bullet_gfx[64] __attribute__ ((section(".iwram"), aligned(4)));
 #define GET_COS(a) (sin_lut[((u8)((a) + 64))])
 
 #define FLOAT_SHIFT 8
+
+// --- CONFIGURAÇÕES DE BACKGROUND ---
+#define BG_CBB(n) ((n) << 2)
+#define BG_SBB(n) ((n) << 8)

@@ -1,0 +1,5 @@
+# font.grit
+-gB4      # Formato de 4-bits (16 cores, economiza memória)
+-m!       # NÃO gerar Tilemap
+-p        # Incluir a Paleta
+-gTFF00FF # Define a cor Magenta como invisível (Índice 0)

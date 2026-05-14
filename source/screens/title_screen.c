@@ -1,6 +1,7 @@
 #include <gba.h> // Ou a sua biblioteca de headers (tonc.h, etc)
 #include <stdlib.h> // Necessário para o srand()
 #include "../engine/state_manager.h"
+#include "../engine/text_engine.h"
 #include "level_game.c" // A próxima cena para onde vamos transitar
 
 // Os headers gerados pelo Grit com os seus gráficos
@@ -21,6 +22,7 @@ static u32 title_frame_counter = 0;
 static void title_init() {
     title_frame_counter = 0;
     title_bg_scroll_x = 0;
+    text_init(); 
 
     // ==========================================
     // 1. CARREGA O ESPAÇO (Fundo)
@@ -49,18 +51,24 @@ static void title_init() {
     // 3. CONFIGURA OS REGISTRADORES DAS CAMADAS
     // ==========================================
     // BG0: Espaço (Usa Paleta 0, Prioridade 1)
-    REG_BG0CNT = BG_CBB(0) | BG_SBB(31) | BG_16_COLOR | BG_SIZE_0 | BG_PRIORITY(1);
+    REG_BG0CNT = BG_CBB(0) | BG_SBB(31) | BG_16_COLOR | BG_SIZE_0 | BG_PRIORITY(3);
 
     // BG1: Título (Usa Paleta 1, Prioridade 0 -> Desenha por cima do BG0!)
     // Não precisamos de BG_PRIORITY(0) porque 0 é o padrão.
-    REG_BG1CNT = BG_CBB(2) | BG_SBB(30) | BG_16_COLOR | BG_SIZE_0;
+    REG_BG1CNT = BG_CBB(2) | BG_SBB(30) | BG_16_COLOR | BG_SIZE_0 | BG_PRIORITY(2);
+    
+    text_draw_static(5, 18, (unsigned char*)"\xA9 2026 Edington Tech");
+    text_draw(10, 13, (unsigned char*)"Press START");
+
+    REG_BLDCNT = (1 << 2) | (1 << 6) | (1 << 8) | (1 << 9) | (1 << 11) | (1 << 13);
 
     // Liga a Tela, liga o Background 0 e liga o Background 1
-    REG_DISPCNT = MODE_0 | BG0_ON | BG1_ON | OBJ_ON | OBJ_1D_MAP;
+    REG_DISPCNT = MODE_0 | BG0_ON | BG1_ON | OBJ_ON | OBJ_1D_MAP | BG2_ON | BG3_ON;
 
     // Centraliza a câmera do Título (BG1) na tela do GBA
     REG_BG1HOFS = 8;
     REG_BG1VOFS = 0;
+
 }
 
 // -------------------------------------------------------------
@@ -96,15 +104,18 @@ static void title_update() {
 static void title_draw() {
     REG_BG0HOFS = title_bg_scroll_x;
     // A. Lógica do Texto Piscante
-    // 32 em binário cria um ciclo de liga/desliga a cada meio segundo
-    if (title_frame_counter & 32) {
-        // Remove a flag de desativado (O texto aparece)
-        // shadow_oam[indice_do_start].attr0 &= ~ATTR0_DISABLED; 
+    // (O MESMO CÓDIGO DO FADE ANTERIOR)
+    int ciclo = title_frame_counter & 127; 
+    int opacidade_texto; 
+
+    if (ciclo < 64) {
+        opacidade_texto = ciclo / 4; 
     } else {
-        // Adiciona a flag de desativado (O texto some)
-        // shadow_oam[indice_do_start].attr0 |= ATTR0_DISABLED;  
+        opacidade_texto = (127 - ciclo) / 4; 
     }
 
+    int opacidade_fundo = 16 - opacidade_texto;
+    REG_BLDALPHA = opacidade_texto | (opacidade_fundo << 8);
     // B. Copia a Shadow OAM para a OAM real da Placa de Vídeo
     // (A mesma função que você já usa no seu game loop original)
     // copy_oam_to_vram(); 
