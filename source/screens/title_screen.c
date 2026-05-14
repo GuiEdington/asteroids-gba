@@ -18,6 +18,15 @@ static u32 title_frame_counter = 0;
 // Adicione isso no topo do arquivo para converter o bloco na posição exata dos bits
 #define BG_CBB(n) ((n) << 2)
 #define BG_SBB(n) ((n) << 8)
+#define BG2_TARGET (1 << 2)
+#define ALPHA_BLENDING_EFFECT (1 << 6)
+#define BLEND_BG0 (1 << 8)
+#define BLEND_BG1 (1 << 9)
+#define BLEND_BG3 (1 << 11)
+#define BLEND_BD (1 << 13)
+#define FADE_RATE 127
+#define MAX_OPACITY 16
+
 
 static void title_init() {
     title_frame_counter = 0;
@@ -60,7 +69,7 @@ static void title_init() {
     text_draw_static(5, 18, (unsigned char*)"\xA9 2026 Edington Tech");
     text_draw(10, 13, (unsigned char*)"Press START");
 
-    REG_BLDCNT = (1 << 2) | (1 << 6) | (1 << 8) | (1 << 9) | (1 << 11) | (1 << 13);
+    REG_BLDCNT = BG2_TARGET | ALPHA_BLENDING_EFFECT | BLEND_BG0 | BLEND_BG1 | BLEND_BG3 | BLEND_BD;
 
     // Liga a Tela, liga o Background 0 e liga o Background 1
     REG_DISPCNT = MODE_0 | BG0_ON | BG1_ON | OBJ_ON | OBJ_1D_MAP | BG2_ON | BG3_ON;
@@ -104,21 +113,32 @@ static void title_update() {
 static void title_draw() {
     REG_BG0HOFS = title_bg_scroll_x;
     // A. Lógica do Texto Piscante
-    // (O MESMO CÓDIGO DO FADE ANTERIOR)
-    int ciclo = title_frame_counter & 127; 
-    int opacidade_texto; 
+    int cycle = title_frame_counter & FADE_RATE; 
+    int text_opacity; 
 
-    if (ciclo < 64) {
-        opacidade_texto = ciclo / 4; 
+    if (cycle < ((FADE_RATE + 1) >> 1)) {
+        // Cresce a opacidade do texto nos primeiros 64 frames
+        // Dividimos por 2 pois o valor máximo da opacidade é 16, e o ciclo vai de 0 a 127 (FADE_RATE)
+        text_opacity = cycle >> 2; 
     } else {
-        opacidade_texto = (127 - ciclo) / 4; 
+        // Diminui a opacidade do texto nos próximos 64 frames
+        text_opacity = (FADE_RATE - cycle) >> 2; 
     }
+    int background_opacity = MAX_OPACITY - text_opacity;
 
-    int opacidade_fundo = 16 - opacidade_texto;
-    REG_BLDALPHA = opacidade_texto | (opacidade_fundo << 8);
-    // B. Copia a Shadow OAM para a OAM real da Placa de Vídeo
-    // (A mesma função que você já usa no seu game loop original)
-    // copy_oam_to_vram(); 
+    // Configura  o registrador de blend para criar o efeito de fade
+    // Esse registrador opera com 16 bits, onde os 8 bits inferiores 
+    // são para a opacidade do primeiro alvo (neste caso, o texto) e 
+    // os 8 bits superiores são para o segundo alvo (o fundo). Esses
+    // bits  esperam  valores  de  0  a  16,  onde  0  é  totalmente 
+    // transparente e 16 é totalmente opaco.
+    // Texto Opaco (16)     :  00000000 00010000
+    // Fundo Opaco (16 << 8):  00010000 00000000
+    //                        -----------------
+    // Resultado do OR ( | ):  00010000 00010000
+    // por isso empurramos o valor do background_opacity 8 bits para 
+    // a esquerda.
+    REG_BLDALPHA = text_opacity | (background_opacity << 8);
 }
 
 // -------------------------------------------------------------
