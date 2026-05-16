@@ -15,17 +15,18 @@ extern const Scene level_game;
 int title_bg_scroll_x = 0;
 static u32 title_frame_counter = 0;
 
-// Adicione isso no topo do arquivo para converter o bloco na posição exata dos bits
+// Defines
 #define BG_CBB(n) ((n) << 2)
 #define BG_SBB(n) ((n) << 8)
-#define BG2_TARGET (1 << 2)
-#define ALPHA_BLENDING_EFFECT (1 << 6)
-#define BLEND_BG0 (1 << 8)
-#define BLEND_BG1 (1 << 9)
-#define BLEND_BG3 (1 << 11)
-#define BLEND_BD (1 << 13)
+#define BG2_TARGET (1 << 2)            // 00000000 00000000 00000000 00000100
+#define ALPHA_BLENDING_EFFECT (1 << 6) // 00000000 00000000 00000000 00100000
+#define BLEND_BG0 (1 << 8)             // 00000000 00000000 00000001 00000000
+#define BLEND_BG1 (1 << 9)             // 00000000 00000000 00000010 00000000
+#define BLEND_BG3 (1 << 11)            // 00000000 00000000 00001000 00000000
+#define BLEND_BD (1 << 13)             // 00000000 00000000 00100000 00000000
 #define FADE_RATE 127
 #define MAX_OPACITY 16
+#define BG_WIDTH_MASK 0xFF // 255
 
 
 static void title_init() {
@@ -89,7 +90,7 @@ static void title_update() {
     // A. Animação do Espaço Infinito
     // Desloca a câmera 1 pixel para a esquerda a cada frame.
     if ((title_frame_counter & 3) == 0) { // Desloca a cada 4 frames (1/15 de segundo)
-        title_bg_scroll_x = (title_bg_scroll_x - 1) & 0xFF; 
+        title_bg_scroll_x = (title_bg_scroll_x - 1) & BG_WIDTH_MASK; 
     }
 
     // B. Leitura dos Botões
