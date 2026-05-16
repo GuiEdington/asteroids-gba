@@ -15,7 +15,7 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
     // Configuração inicial do Hardware (OAM)
     p->obj->attr0 = ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE; 
     p->obj->attr1 = ATTR1_SIZE_16 | ATTR1_ROTDATA(0);
-    p->obj->attr2 = ATTR2_PALETTE(0) | tile_index;
+    p->obj->attr2 = ATTR2_PALETTE(0) | ATTR2_PRIORITY(1) | tile_index;
 }
 
 void player_update(Player *p, u16 keys) {

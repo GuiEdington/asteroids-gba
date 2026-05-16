@@ -12,7 +12,7 @@
 void bullet_manager_init(OBJATTR *oam_buffer, int oam_start_index);
 
 // Faz o loop de física e limpeza (desativa quem saiu da tela)
-void bullet_manager_update();
+int bullet_manager_update();
 
 // Faz o loop de renderização (atualiza a OAM)
 void bullet_manager_draw();

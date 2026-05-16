@@ -1,9 +1,11 @@
 #include "bullet.h"
 #include "../config.h" 
 
+#define BULLET_SIZE 8
+
 void bullet_init(Bullet *b, int start_x, int start_y, int angle, OBJATTR *attribs) {
-    b->x = start_x + (4 << FLOAT_SHIFT);
-    b->y = start_y + (4 << FLOAT_SHIFT);
+    b->x = start_x + (BULLET_SIZE / 2 << FLOAT_SHIFT);
+    b->y = start_y + (BULLET_SIZE / 2 << FLOAT_SHIFT);
     b->dx = GET_SIN(angle) << 1;
     b->dy = -GET_COS(angle) << 1;
     b->angle = angle;
@@ -12,14 +14,14 @@ void bullet_init(Bullet *b, int start_x, int start_y, int angle, OBJATTR *attrib
 
     b->obj->attr0 = ATTR0_COLOR_256 | ATTR0_SQUARE; 
     b->obj->attr1 = ATTR1_SIZE_8;
-    b->obj->attr2 = ATTR2_PALETTE(0) | BULLET_TILE_POS;
+    b->obj->attr2 = ATTR2_PALETTE(0) | ATTR2_PRIORITY(1) | BULLET_TILE_POS;
 }
 
 void bullet_update(Bullet *b) {
     if (!b->active) return;
     b->x += b->dx;
     b->y += b->dy;
-    if (b->x < 0 || b->x > SCREEN_WIDTH << FLOAT_SHIFT || b->y < 0 || b->y > SCREEN_HEIGHT << FLOAT_SHIFT) {
+    if (b->x < (-BULLET_SIZE << FLOAT_SHIFT) || b->x > (SCREEN_WIDTH << FLOAT_SHIFT) || b->y < (-BULLET_SIZE << FLOAT_SHIFT) || b->y > (SCREEN_HEIGHT << FLOAT_SHIFT)) {
         b->active = false;
     }
 }

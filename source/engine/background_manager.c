@@ -15,7 +15,7 @@ void bg_manager_init() {
     dmaCopy(space_backgroundMap, SCREEN_BASE_BLOCK(31), space_backgroundMapLen);
 
     // 2. Configura o registrador (Mesma coisa que estava na tela de título)
-    REG_BG0CNT = BG_CBB(0) | BG_SBB(31) | BG_16_COLOR | BG_SIZE_0;
+    REG_BG0CNT = BG_CBB(0) | BG_SBB(31) | BG_16_COLOR | BG_SIZE_0 | BG_PRIORITY(3);
     
     // 3. Reseta a câmera
     bg_scroll_x = title_bg_scroll_x << 8; // Começa com o scroll do título para uma transição suave
@@ -23,7 +23,7 @@ void bg_manager_init() {
 }
 
 // Recebe a velocidade atual da nave (em Ponto Fixo 8.8)
-void bg_manager_update(s32 ship_dx, s32 ship_dy) {
+void bg_manager_update_opose_ship(s32 ship_dx, s32 ship_dy) {
     
     // 1. O Fator Parallax (>> 3 divide a velocidade por 8)
     // Se a nave vai para a direita (dx positivo), nós SOMAMOS na câmera, 
@@ -39,4 +39,9 @@ void bg_manager_update(s32 ship_dx, s32 ship_dy) {
     // Isso garante que nunca passemos números negativos ou gigantes para a placa de vídeo
     REG_BG0HOFS = pixel_x & 0xFF;
     REG_BG0VOFS = pixel_y & 0xFF;
+}
+
+void bg_manager_update(int pos_x, int pos_y) {
+    REG_BG0HOFS = pos_x;
+    REG_BG0VOFS = pos_y;
 }

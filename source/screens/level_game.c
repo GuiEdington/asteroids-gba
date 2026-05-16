@@ -4,6 +4,7 @@
 #include "../engine/bullet_manager.h"
 #include "../engine/asteroid_manager.h"
 #include "../engine/background_manager.h"
+#include "../engine/hud.h"
 
 // Sprites
 #include "spaceship.h"
@@ -15,6 +16,8 @@
 // ESTADO LOCAL DA FASE (Variáveis Static)
 // ==========================================
 static Player player;
+static int player_score = 0;
+static int player_lives = 3;
 
 // Supondo que você já tenha essas structs definidas em algum lugar
 
@@ -62,7 +65,9 @@ void createProgrammaticBulletSprite() {
 // ==========================================
 void game_init() {
     // Ativa Modo 0, Background do Espaço e Sprites!
-    REG_DISPCNT = MODE_0 | BG0_ON | OBJ_ON | OBJ_1D_MAP;
+    REG_BLDCNT = 0; 
+    REG_BLDY = 0;
+    REG_DISPCNT = MODE_0 | BG0_ON | BG2_ON | OBJ_ON | OBJ_1D_MAP;
 
     // 1. Limpa a shadow_oam
     for(int i = 0; i < 128; i++) {
@@ -74,6 +79,7 @@ void game_init() {
 
     OBJAFFINE *shadow_affine = (OBJAFFINE*)shadow_oam; // Reinterpretamos o início da shadow_oam como uma área de OBJAFFINE para o player
     // 2. Inicializa entidades
+    hud_init();
     bg_manager_init();
     player_init(&player, &shadow_oam[0], &shadow_affine[0], 0); // Player fica no índice 0
     bullet_manager_init(&shadow_oam[1], 1); // Tiros começam no índice 1
@@ -92,9 +98,24 @@ void game_update() {
     if (keys_pressed & KEY_A) {
         bullet_manager_spawn(player.x, player.y, player.angle);
     }
-    bullet_manager_update();
+    int destroyed_asteroid_size = bullet_manager_update();
+    if (destroyed_asteroid_size > 0) {
+        if (destroyed_asteroid_size == ASTEROID_LARGE) {
+            player_score += 20;
+        } else if (destroyed_asteroid_size == ASTEROID_MEDIUM) {
+            player_score += 50;
+        } else if (destroyed_asteroid_size == ASTEROID_SMALL) {
+            player_score += 100;
+        }
+        update_score(player_score);
+        if (player_score >= 10000) {
+            player_lives++;
+            update_lives(player_lives);
+        }
+    }
     asteroid_manager_update();
-    bg_manager_update(player.dx, player.dy);
+    bg_manager_update_opose_ship(player.dx, player.dy);
+    hud_update();
 }
 
 // ==========================================

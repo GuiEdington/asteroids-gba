@@ -10,7 +10,7 @@
 typedef struct {
     int x, y;          // Posição (Ponto Fixo)
     int dx, dy;        // Vetores de Velocidade (Ponto Fixo)
-    int size;          // Tamanho do asteroide (0=grande, 1=médio, 2=pequeno)
+    int size;          // Tamanho do asteroide (32, 16 ou 8)
     OBJATTR *obj;      // Ponteiro para o atributo na OAM
     bool active;      // Flag para controle de existência
 } Asteroid;

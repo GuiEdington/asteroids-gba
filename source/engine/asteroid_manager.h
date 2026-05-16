@@ -12,6 +12,6 @@ void asteroid_manager_update();
 void asteroid_manager_draw();
 void asteroid_manager_spawn(int count);
 int asteroid_manager_check_hit(int hit_x, int hit_y, int hit_radius);
-void destroy_asteroid(int index);
+int destroy_asteroid(int index);
 
 #endif

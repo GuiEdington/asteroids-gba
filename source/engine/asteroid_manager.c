@@ -124,11 +124,11 @@ int get_next_free_index() {
     return -1; // Nenhum slot livre
 }
 
-void destroy_asteroid(int index) {
-    if (index < 0 || index >= MAX_ASTEROIDS_POOL) return; // Segurança
+int destroy_asteroid(int index) {
+    if (index < 0 || index >= MAX_ASTEROIDS_POOL) return 0; // Segurança
 
     Asteroid *a = &asteroid_pool[index];
-    if (!a->active) return; // Já está inativo
+    if (!a->active) return 0; // Já está inativo
     int free_index = get_next_free_index();
     asteroid_destroy(a); // Chama a função de destruição da entidade (que pode ser usada para efeitos, sons, etc)
 
@@ -144,4 +144,5 @@ void destroy_asteroid(int index) {
             asteroid_init(&asteroid_pool[free_index], a->x >> FLOAT_SHIFT, a->y >> FLOAT_SHIFT, ASTEROID_SMALL, rand() & 255, &oam_ref[oam_offset + free_index]);
         }
     }
+    return a->size;
 }

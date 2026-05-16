@@ -30,7 +30,7 @@ void bullet_manager_spawn(int start_x, int start_y, int angle) {
     next_bullet_index = (next_bullet_index + 1) & BULLET_MASK;
 }
 
-void bullet_manager_update() {
+int bullet_manager_update() {
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
             bullet_update(&bullets[i]); // A física está dentro de bullet.c agora!
@@ -45,11 +45,12 @@ void bullet_manager_update() {
 
                     // Destrói o asteroide (que vai desencadear o spawn dos filhos)
                     bullet_destroy(&bullets[i]); // Garante que a bala seja escondida da OAM imediatamente
-                    destroy_asteroid(hit_index); 
+                    return destroy_asteroid(hit_index); 
                 }
             }
         }
     }
+    return 0;
 }
 
 void bullet_manager_draw() {

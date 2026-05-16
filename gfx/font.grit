@@ -3,3 +3,4 @@
 -m!       # NÃO gerar Tilemap
 -p        # Incluir a Paleta
 -gTFF00FF # Define a cor Magenta como invisível (Índice 0)
+-pn 16
