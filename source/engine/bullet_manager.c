@@ -1,6 +1,7 @@
 #include "bullet_manager.h"
 #include "asteroid_manager.h"
 #include <stddef.h>
+#include "../config.h"
 
 // Estado Privado do Manager (Static garante que ninguém fora daqui acesse)
 static Bullet bullets[MAX_BULLETS];
@@ -34,20 +35,20 @@ int bullet_manager_update() {
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
             bullet_update(&bullets[i]); // A física está dentro de bullet.c agora!
-            if (bullets[i].active) {
-                // O raio da nossa bala 8x8 é 4 pixels
-                int hit_index = asteroid_manager_check_hit(bullets[i].x, bullets[i].y, 4);
+            // if (bullets[i].active) {
+            //     // O raio da nossa bala 8x8 é 4 pixels
+            //     int hit_index = asteroid_manager_get_collider(bullets[i].x, bullets[i].y, 4);
 
-                if (hit_index != -1) {
-                    // Destrói a bala
-                    bullets[i].active = false;
-                    shadow_oam_ref[oam_offset + i].attr0 = ATTR0_DISABLED;
+            //     if (hit_index != -1) {
+            //         // Destrói a bala
+            //         bullets[i].active = false;
+            //         shadow_oam_ref[oam_offset + i].attr0 = ATTR0_DISABLED;
 
-                    // Destrói o asteroide (que vai desencadear o spawn dos filhos)
-                    bullet_destroy(&bullets[i]); // Garante que a bala seja escondida da OAM imediatamente
-                    return destroy_asteroid(hit_index); 
-                }
-            }
+            //         // Destrói o asteroide (que vai desencadear o spawn dos filhos)
+            //         destroy_bullet(i); // Garante que a bala seja escondida da OAM imediatamente
+            //         return destroy_asteroid(hit_index); 
+            //     }
+            // }
         }
     }
     return 0;
@@ -58,7 +59,27 @@ void bullet_manager_draw() {
         if (bullets[i].active) {
             bullet_draw(&bullets[i]); // O desenho está dentro de bullet.c!
         } else {
-            bullet_destroy(&bullets[i]); // Garante que tiros inativos sejam escondidos da OAM
+            destroy_bullet(i); // Garante que tiros inativos sejam escondidos da OAM
         }
     }
+}
+
+int bullet_manager_get_collider(int index, int *cx, int *cy, int *radius) {
+    if (index < 0 || index >= MAX_BULLETS) return 0; // Segurança
+    if (!bullets[index].active) return 0;
+
+    Bullet *b = &bullets[index];
+    *cx = (b->x >> FLOAT_SHIFT) + 4;
+    *cy = (b->y >> FLOAT_SHIFT) + 4;
+    *radius = 2; // Raio da bala 4x4 é 2 pixels
+    return 1; // Colisão ativa
+}
+
+int destroy_bullet(int index) {
+    if (index < 0 || index >= MAX_BULLETS) return 0; // Segurança
+    if (!bullets[index].active) return 0; // Já está inativo
+
+    bullets[index].active = false;
+    shadow_oam_ref[oam_offset + index].attr0 = ATTR0_DISABLED; // Esconde da OAM
+    return 1;
 }

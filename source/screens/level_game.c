@@ -5,6 +5,7 @@
 #include "../engine/asteroid_manager.h"
 #include "../engine/background_manager.h"
 #include "../engine/hud.h"
+#include "../engine/physics.h"
 
 // Sprites
 #include "spaceship.h"
@@ -60,6 +61,65 @@ void createProgrammaticBulletSprite() {
     }
 }
 
+void level_game_resolve_collisions() {
+    int ast_cx, ast_cy, ast_radius;
+    int bul_cx, bul_cy, bul_radius;
+
+    // Loop nas balas
+    for (int b = 0; b < MAX_BULLETS; b++) {
+        // Pega a bolha de colisão da bala
+        if (!bullet_manager_get_collider(b, &bul_cx, &bul_cy, &bul_radius)) continue;
+
+        // Loop nos asteroides
+        for (int a = 0; a < MAX_ASTEROIDS_POOL; a++) {
+            // Pega a bolha de colisão do asteroide
+            if (!asteroid_manager_get_collider(a, &ast_cx, &ast_cy, &ast_radius)) continue;
+
+            // Manda para a matemática pura!
+            if (check_circle_collision(bul_cx, bul_cy, bul_radius, ast_cx, ast_cy, ast_radius)) {
+                
+                // BATEU! Executa as regras de negócio:
+                destroy_bullet(b);
+                int asteroidSize = get_size(a);
+                destroy_asteroid(a);
+                if (asteroidSize > 0) {
+                    if (asteroidSize == ASTEROID_LARGE) {
+                        player_score += 20;
+                    } else if (asteroidSize == ASTEROID_MEDIUM) {
+                        player_score += 50;
+                    } else if (asteroidSize == ASTEROID_SMALL) {
+                        player_score += 100;
+                    }
+                    update_score(player_score);
+                    if (player_score >= 10000) {
+                        player_lives++;
+                        update_lives(player_lives);
+                    }
+                }
+                break; // A bala já sumiu, não precisa testar com outros asteroides
+            }
+        }
+    }
+
+    if (player.active && player.invuln_timer == 0) {
+        // Verifica colisão do jogador com asteroides
+        for (int a = 0; a < MAX_ASTEROIDS_POOL; a++) {
+            if (!asteroid_manager_get_collider(a, &ast_cx, &ast_cy, &ast_radius)) continue;
+            int player_cx = (player.x >> FLOAT_SHIFT) + (PLAYER_SIZE >> 1);
+            int player_cy = (player.y >> FLOAT_SHIFT) + (PLAYER_SIZE >> 1);
+            int player_radius = (PLAYER_SIZE >> 1) - 1; // Colisão "encolhida"
+
+            if (check_circle_collision(player_cx, player_cy, player_radius, ast_cx, ast_cy, ast_radius)) {
+                // Colidiu com um asteroide!
+                player_lives--;
+                update_lives(player_lives);
+                player.invuln_timer = 120; // 2 segundos de invulnerabilidade
+                break; // Não precisa testar com outros asteroides
+            }
+        }
+    }
+}
+
 // ==========================================
 // INIT: Chamado uma vez quando a fase carrega
 // ==========================================
@@ -98,21 +158,9 @@ void game_update() {
     if (keys_pressed & KEY_A) {
         bullet_manager_spawn(player.x, player.y, player.angle);
     }
-    int destroyed_asteroid_size = bullet_manager_update();
-    if (destroyed_asteroid_size > 0) {
-        if (destroyed_asteroid_size == ASTEROID_LARGE) {
-            player_score += 20;
-        } else if (destroyed_asteroid_size == ASTEROID_MEDIUM) {
-            player_score += 50;
-        } else if (destroyed_asteroid_size == ASTEROID_SMALL) {
-            player_score += 100;
-        }
-        update_score(player_score);
-        if (player_score >= 10000) {
-            player_lives++;
-            update_lives(player_lives);
-        }
-    }
+    bullet_manager_update();
+    level_game_resolve_collisions();
+    
     asteroid_manager_update();
     bg_manager_update_opose_ship(player.dx, player.dy);
     hud_update();

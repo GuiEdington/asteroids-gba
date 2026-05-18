@@ -1,5 +1,6 @@
 #include "asteroid_manager.h"
 #include "../config.h"
+#include "../entities/asteroid.h"
 
 static OBJATTR *oam_ref;
 static int oam_offset;
@@ -61,58 +62,32 @@ void asteroid_manager_draw() {
     }
 }
 
-int asteroid_manager_check_hit(int hit_x, int hit_y, int hit_radius) {
-    for (int i = 0; i < MAX_ASTEROIDS_POOL; i++) {
-        if (!asteroid_pool[i].active) continue;
+int asteroid_manager_get_collider(int index, int *cx, int *cy, int *radius) {
+    if (index < 0 || index >= MAX_ASTEROIDS_POOL) return 0; // Segurança
+    if (!asteroid_pool[index].active) return 0;
 
-        Asteroid *a = &asteroid_pool[i];
+    Asteroid *a = &asteroid_pool[index];
 
-        // 1. Separa o Visual (para achar o centro) do Físico (para bater)
-        int visual_half = 0;
-        int hitbox_radius = 0;
+    // 1. Separa o Visual (para achar o centro) do Físico (para bater)
+    int visual_half = 0;
+    int hitbox_radius = 0;
 
-        if (a->size == ASTEROID_LARGE) {
-            visual_half = 16;       // Sprite é 32x32, metade é 16
-            hitbox_radius = 12;     // Colisão real "encolhida" (ajuste a gosto)
-        } else if (a->size == ASTEROID_MEDIUM) {
-            visual_half = 8;        // Sprite é 16x16, metade é 8
-            hitbox_radius = 5;      // Colisão real "encolhida"
-        } else if (a->size == ASTEROID_SMALL) {
-            visual_half = 4;        // Sprite é 8x8, metade é 4
-            hitbox_radius = 2;      // Colisão bem no miolinho
-        }
-
-        // 2. Pega as posições brutas
-        int ast_px = a->x >> FLOAT_SHIFT;
-        int ast_py = a->y >> FLOAT_SHIFT;
-        int hit_px = hit_x >> FLOAT_SHIFT;
-        int hit_py = hit_y >> FLOAT_SHIFT;
-
-        // 3. Centraliza a matemática usando o VISUAL
-        ast_px += visual_half;
-        ast_py += visual_half;
-        
-        // Assumindo que a bala passada no parâmetro também precisa ser centralizada
-        // (Se a sua bala é 8x8, o hit_radius original que você passava era 4)
-        hit_px += hit_radius; 
-        hit_py += hit_radius; 
-
-        // 4. Calcula a distância entre os centros
-        int dx = ast_px - hit_px;
-        int dy = ast_py - hit_py;
-        int distance_squared = (dx * dx) + (dy * dy);
-
-        // 5. A BATIDA: Usa as hitboxes ENCOLHIDAS
-        // Reduza também a hitbox da bala para 1 ou 2, para o tiro ficar mais "afiado"
-        int bullet_hitbox = 2; 
-        int radius_sum = hitbox_radius + bullet_hitbox;
-        int radius_squared = radius_sum * radius_sum;
-
-        if (distance_squared < radius_squared) {
-            return i; 
-        }
+    if (a->size == ASTEROID_LARGE) {
+        visual_half = 16;       // Sprite é 32x32, metade é 16
+        hitbox_radius = 12;     // Colisão real "encolhida" (ajuste a gosto)
+    } else if (a->size == ASTEROID_MEDIUM) {
+        visual_half = 8;        // Sprite é 16x16, metade é 8
+        hitbox_radius = 5;      // Colisão real "encolhida"
+    } else if (a->size == ASTEROID_SMALL) {
+        visual_half = 4;        // Sprite é 8x8, metade é 4
+        hitbox_radius = 2;      // Colisão bem no miolinho
     }
-    return -1;
+
+    *cx = (a->x >> FLOAT_SHIFT) + visual_half; // Centro visual
+    *cy = (a->y >> FLOAT_SHIFT) + visual_half;
+    *radius = hitbox_radius;
+    return 1; // Colisão ativa
+
 }
 
 int get_next_free_index() {
@@ -145,4 +120,10 @@ int destroy_asteroid(int index) {
         }
     }
     return a->size;
+}
+
+int get_size(int index) {
+    if (index < 0 || index >= MAX_ASTEROIDS_POOL) return 0; // Segurança
+    if (!asteroid_pool[index].active) return 0;
+    return asteroid_pool[index].size;
 }

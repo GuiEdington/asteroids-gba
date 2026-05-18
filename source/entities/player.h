@@ -16,6 +16,7 @@ typedef struct {
     OBJAFFINE *affine;  // Estrutura para rotação (se necessário)
     int tile_index;    // Índice do tile inicial na VRAM
     bool active;      // Flag para controle de existência (útil para tiros e asteroides)
+    int invuln_timer;  // Timer para invulnerabilidade após ser atingido (opcional)
 } Player;
 
 // Métodos "Públicos"

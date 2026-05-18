@@ -7,6 +7,7 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
     p->dx = 0;
     p->dy = 0;
     p->angle = 0;
+    p->invuln_timer = 0;
     p->tile_index = tile_index;
     p->obj = attribs;
     p->affine = affine;
@@ -19,6 +20,8 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
 }
 
 void player_update(Player *p, u16 keys) {
+    if (!p->active) return;
+
     // 1. Rotação (Gerencia apenas o ângulo)
     if (keys & KEY_LEFT)  p->angle -= 4;
     if (keys & KEY_RIGHT) p->angle += 4;
@@ -55,6 +58,10 @@ void player_update(Player *p, u16 keys) {
     if (p->x > SCREEN_WIDTH << FLOAT_SHIFT) p->x = -PLAYER_SIZE << FLOAT_SHIFT;
     if (p->y < -PLAYER_SIZE << FLOAT_SHIFT) p->y = SCREEN_HEIGHT << FLOAT_SHIFT;
     if (p->y > SCREEN_HEIGHT << FLOAT_SHIFT) p->y = -PLAYER_SIZE << FLOAT_SHIFT;
+
+    if (p->invuln_timer > 0) {
+        p->invuln_timer--; // Desconta 1 frame
+    }
 }
 
 void player_draw(Player *p) {
@@ -75,4 +82,15 @@ void player_draw(Player *p) {
     p->affine->pb = sin_val;
     p->affine->pc = -sin_val;
     p->affine->pd = cos_val;
+
+    // Efeito visual: Faz a nave piscar a cada 4 frames usando operador bit a bit
+    // Se o bit 2 estiver ligado, nós escondemos o sprite
+    if (p->invuln_timer & 4) {
+        // Esconde a nave manipulando o Atributo 0 da OAM
+        // (Assumindo que você usa libgba ou acessa a OAM direto)
+        p->obj->attr0 = (p->obj->attr0 & ~MASK_Y) | (160 & MASK_Y); 
+    } else {
+        // Mostra a nave (Remove a flag de hide)
+        p->obj->attr0 = (p->obj->attr0 & ~MASK_Y) | (render_y & MASK_Y);
+    }
 }

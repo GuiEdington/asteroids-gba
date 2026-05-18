@@ -11,7 +11,8 @@ void asteroid_manager_init(OBJATTR *oam_buffer, int oam_start_index);
 void asteroid_manager_update();
 void asteroid_manager_draw();
 void asteroid_manager_spawn(int count);
-int asteroid_manager_check_hit(int hit_x, int hit_y, int hit_radius);
+int asteroid_manager_get_collider(int index, int *cx, int *cy, int *radius);
 int destroy_asteroid(int index);
+int get_size(int index);
 
 #endif

@@ -20,4 +20,10 @@ void bullet_manager_draw();
 // O "gatilho" chamado pelo level_game quando o jogador aperta A
 void bullet_manager_spawn(int start_x, int start_y, int angle);
 
+// Retorna 1 se a bala estiver ativa e preenche os parâmetros de colisão (centro e raio)
+int bullet_manager_get_collider(int index, int *cx, int *cy, int *radius);
+
+// Destrói a bala (pode ser chamado tanto pelo manager quanto pelo level_game quando detecta colisão)
+int destroy_bullet(int index);
+
 #endif
