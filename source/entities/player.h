@@ -33,5 +33,6 @@ typedef struct {
 void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index);
 void player_update(Player *p, u16 keys);
 void player_draw(Player *p);
+void player_die(Player *p, int lives);
 
 #endif

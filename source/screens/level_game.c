@@ -2,10 +2,12 @@
 #include "scene.h"
 #include "../entities/player.h"
 #include "../engine/bullet_manager.h"
+#include "../engine/state_manager.h"
 #include "../engine/asteroid_manager.h"
 #include "../engine/background_manager.h"
 #include "../engine/hud.h"
 #include "../engine/physics.h"
+#include "title_screen.h"
 
 // Sprites
 #include "spaceship.h"
@@ -14,17 +16,23 @@
 #include "asteroids_p.h"
 #include "explosion.h"
 
+#define MAX_FADE 16
+
 // ==========================================
 // ESTADO LOCAL DA FASE (Variáveis Static)
 // ==========================================
-static Player player;
-static int player_score = 0;
-static int player_lives = 3;
+Player player;
+int player_score;
+int player_lives;
+int frame_counter;
+int is_fading_out;
+int fade_level;
 
 // Supondo que você já tenha essas structs definidas em algum lugar
 
 // O seu buffer local da OAM para não escrever direto na VRAM fora do VBlank
-static OBJATTR shadow_oam[128]; 
+extern OBJATTR shadow_oam[128]; 
+extern const Scene game_over; // Declaramos a próxima cena para
 
 #define SPRITE_TILE(pos) (SPRITE_GFX + ((pos) * 16))
 
@@ -115,7 +123,12 @@ void level_game_resolve_collisions() {
                 // Colidiu com um asteroide!
                 player_lives--;
                 update_lives(player_lives);
-                player.state = STATE_EXPLODING;
+                player_die(&player, player_lives);
+                // TODO: Adicionar lógica de Game Over se player_lives <= 0
+                if (player_lives <= 0 && player.death_timer <= 0) {
+                    REG_BLDCNT = ALL_BG | BRIGHTNESS_DECREASE_MODE;
+                    is_fading_out = 1;   
+                }
                 break; // Não precisa testar com outros asteroides
             }
         }
@@ -126,9 +139,14 @@ void level_game_resolve_collisions() {
 // INIT: Chamado uma vez quando a fase carrega
 // ==========================================
 void game_init() {
+    player_score = 0;
+    player_lives = 3;
+    frame_counter = 0;
+    is_fading_out = 0;
+    fade_level = 0;
     // Ativa Modo 0, Background do Espaço e Sprites!
-    REG_BLDCNT = 0; 
-    REG_BLDY = 0;
+    REG_BLDCNT = 0; // Reseta o registrador de blend para evitar bugs visuais
+    REG_BLDY = 0; // Reseta o nível de blend
     REG_DISPCNT = MODE_0 | BG0_ON | BG2_ON | OBJ_ON | OBJ_1D_MAP;
 
     // 1. Limpa a shadow_oam
@@ -141,7 +159,7 @@ void game_init() {
 
     OBJAFFINE *shadow_affine = (OBJAFFINE*)shadow_oam; // Reinterpretamos o início da shadow_oam como uma área de OBJAFFINE para o player
     // 2. Inicializa entidades
-    hud_init();
+    hud_init(player_score, player_lives);
     bg_manager_init();
     player_init(&player, &shadow_oam[0], &shadow_affine[0], 0); // Player fica no índice 0
     bullet_manager_init(&shadow_oam[1], 1); // Tiros começam no índice 1
@@ -153,18 +171,32 @@ void game_init() {
 // UPDATE: Chamado todo frame (Apenas Matemática e Física)
 // ==========================================
 void game_update() {
+    frame_counter++;
     level_game_resolve_collisions();
     scanKeys();
-    u16 keys = keysHeld();
-    u16 keys_pressed = keysDown();
-    player_update(&player, keys);
-    if (keys_pressed & KEY_A) {
+    u16 level_game_keys = keysHeld();
+    u16 level_game_keys_pressed = keysDown();
+    player_update(&player, level_game_keys);
+    if (level_game_keys_pressed & KEY_A) {
         bullet_manager_spawn(player.x, player.y, player.angle);
     }
     bullet_manager_update();
     asteroid_manager_update();
     bg_manager_update_opose_ship(player.dx, player.dy);
     hud_update();
+    if (is_fading_out) {
+        if ((frame_counter & 7) == 0) { // Desloca a cada 4 frames (1/15 de segundo)
+            fade_level++;
+            REG_BLDY = fade_level; // Aumenta a intensidade do fade a cada 4 frames
+            if (fade_level >= MAX_FADE) {
+                // Quando o fade estiver completo, desligamos a tela para evitar artefatos visuais
+                REG_DISPCNT = 0;
+                set_scene(&game_over); 
+                return;
+            }
+        }
+        return;
+    }
 }
 
 // ==========================================
@@ -178,11 +210,34 @@ void game_draw() {
     asteroid_manager_draw();
 }
 
+static void game_exit() {
+    // 1. Zera completamente o estado do fade e contadores locais
+    is_fading_out = 0;
+    fade_level = 0;
+    frame_counter = 0;
+    player_score = 0;
+    player_lives = 3;
+
+    // 2. Passa o rodo na shadow_oam para garantir que nenhum sprite 
+    // do gameplay fique flutuando na RAM ou apareça no próximo frame
+    for (int i = 0; i < 128; i++) {
+        shadow_oam[i].attr0 = ATTR0_DISABLED; // Desativa fisicamente o sprite
+        shadow_oam[i].attr1 = 0;
+        shadow_oam[i].attr2 = 0;
+    }
+
+    // 3. Desliga qualquer efeito de hardware ativo (evita vazar blend)
+    REG_BLDCNT = 0;
+    REG_BLDY = 0;
+    hud_clean();
+}
+
 // ==========================================
 // EXPORTA A CENA
 // ==========================================
 const Scene level_game = {
     game_init,
     game_update,
-    game_draw
+    game_draw,
+    game_exit
 };

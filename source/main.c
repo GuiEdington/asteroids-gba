@@ -6,11 +6,9 @@
 #include "config.h"
 #include "screens/scene.h"
 #include "engine/state_manager.h"
-#include "screens/title_screen.c"
+#include "screens/title_screen.h"
 
-extern const Scene title_screen; // Declaramos a cena para o State Manager
-
-extern OBJATTR shadow_oam[128];
+OBJATTR shadow_oam[128] __attribute__((aligned(4)));
 
 void initialDisplayConfig() {
 	// --- CONFIGURAÇÃO DE HARDWARE OBRIGATÓRIA ---

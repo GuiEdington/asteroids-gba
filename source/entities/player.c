@@ -1,6 +1,8 @@
 #include "player.h"
 #include "../config.h" 
 
+int player_game_over;
+
 void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index) {
     p->x = ((SCREEN_WIDTH/2) - (PLAYER_SIZE/2)) << FLOAT_SHIFT;
 	p->y = ((SCREEN_HEIGHT/2) - (PLAYER_SIZE/2)) << FLOAT_SHIFT;
@@ -15,6 +17,8 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
     p->death_timer = 0;
     p->animation_frame = 0;
     p->animation_counter = 0;
+    
+    player_game_over = 0;
 
     // Configuração inicial do Hardware (OAM)
     p->obj->attr0 = ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE; 
@@ -75,6 +79,13 @@ void player_update_exploding(Player *p) {
     }
 }
 
+void player_die(Player *p, int lives) {
+    if (lives <= 0) {
+        player_game_over = 1;
+    }
+    p->state = STATE_EXPLODING;
+}
+
 void player_update(Player *p, u16 keys) {
     switch (p->state) {
         case STATE_ALIVE:
@@ -87,7 +98,7 @@ void player_update(Player *p, u16 keys) {
             // Talvez queira adicionar uma tela de Game Over ou reiniciar o jogo
             if (p->death_timer > 0) {
                 p->death_timer--;
-            } else {
+            } else if (!player_game_over) {
                 // Deu os 2 segundos! Resuscita o jogador
                 p->obj->attr0 = ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE; 
                 p->state = STATE_ALIVE;
