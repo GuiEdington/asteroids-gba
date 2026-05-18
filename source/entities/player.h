@@ -8,6 +8,12 @@
 #define FLOAT_SHIFT 8
 #define PLAYER_SIZE 16
 
+typedef enum {
+    STATE_ALIVE,
+    STATE_EXPLODING,
+    STATE_DEAD 
+} PlayerState;
+
 typedef struct {
     int x, y;          // Posição (Ponto Fixo)
     int dx, dy;        // Vetores de Velocidade (Ponto Fixo)
@@ -15,8 +21,12 @@ typedef struct {
     OBJATTR *obj;      // Ponteiro para o atributo na OAM
     OBJAFFINE *affine;  // Estrutura para rotação (se necessário)
     int tile_index;    // Índice do tile inicial na VRAM
-    bool active;      // Flag para controle de existência (útil para tiros e asteroides)
     int invuln_timer;  // Timer para invulnerabilidade após ser atingido (opcional)
+    PlayerState state; // Estado atual do jogador (vivo, explodindo, morto)
+    int death_timer;  // Timer para controlar a duração da animação de morte (opcional)
+    int animation_frame; // Frame atual da animação (opcional)
+    int animation_counter;
+
 } Player;
 
 // Métodos "Públicos"

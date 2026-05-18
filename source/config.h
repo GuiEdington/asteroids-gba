@@ -17,10 +17,11 @@
 
 // --- MAPA DA VRAM (SPRITES) ---
 #define SPACESHIP_TILE_POS 0
-#define AST_G_TILE_POS 8
-#define AST_M_TILE_POS (AST_G_TILE_POS + 128)
-#define AST_P_TILE_POS (AST_M_TILE_POS + 32)
-#define BULLET_TILE_POS (AST_P_TILE_POS + 8)
+#define AST_G_TILE_POS 4
+#define AST_M_TILE_POS (AST_G_TILE_POS + 64)
+#define AST_P_TILE_POS (AST_M_TILE_POS + 16)
+#define BULLET_TILE_POS (AST_P_TILE_POS + 4)
+#define EXPLOSION_TILE_POS (BULLET_TILE_POS + 2) 
 #define PAL_SIZE 16
 
 // Quantidade de tiles que cada sprite ocupa na VRAM

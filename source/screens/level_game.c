@@ -12,6 +12,7 @@
 #include "asteroids_g.h"
 #include "asteroids_m.h"
 #include "asteroids_p.h"
+#include "explosion.h"
 
 // ==========================================
 // ESTADO LOCAL DA FASE (Variáveis Static)
@@ -31,13 +32,14 @@ void loadSpritesInVram() {
 	// Método para carregar os gráficos e paletas dos sprites na memória de vídeo (VRAM) do GBA.
 	dmaCopy(spaceshipPal, SPRITE_PALETTE, spaceshipPalLen);
     dmaCopy(asteroids_gPal, SPRITE_PALETTE + PAL_SIZE, asteroids_gPalLen);
-	dmaCopy(spaceshipTiles, SPRITE_GFX, spaceshipTilesLen);
+    dmaCopy(explosionPal, SPRITE_PALETTE + 2 * PAL_SIZE, explosionPalLen);
 
-    // 2. Carrega os gráficos (Tiles) de cada tamanho para seus respectivos lugares na VRAM
-    // (Lembrando daquela matemática de offsets que fizemos antes)
+    // Carregar o gráfico dos sprites
+	dmaCopy(spaceshipTiles, SPRITE_GFX, spaceshipTilesLen);
     dmaCopy(asteroids_gTiles, SPRITE_TILE(AST_G_TILE_POS), asteroids_gTilesLen);
     dmaCopy(asteroids_mTiles, SPRITE_TILE(AST_M_TILE_POS), asteroids_mTilesLen);
     dmaCopy(asteroids_pTiles, SPRITE_TILE(AST_P_TILE_POS), asteroids_pTilesLen);
+    dmaCopy(explosionTiles, SPRITE_TILE(EXPLOSION_TILE_POS), explosionTilesLen);
 }
 
 void createProgrammaticBulletSprite() {
@@ -101,7 +103,7 @@ void level_game_resolve_collisions() {
         }
     }
 
-    if (player.active && player.invuln_timer == 0) {
+    if (player.state == STATE_ALIVE && player.invuln_timer == 0) {
         // Verifica colisão do jogador com asteroides
         for (int a = 0; a < MAX_ASTEROIDS_POOL; a++) {
             if (!asteroid_manager_get_collider(a, &ast_cx, &ast_cy, &ast_radius)) continue;
@@ -113,7 +115,7 @@ void level_game_resolve_collisions() {
                 // Colidiu com um asteroide!
                 player_lives--;
                 update_lives(player_lives);
-                player.invuln_timer = 120; // 2 segundos de invulnerabilidade
+                player.state = STATE_EXPLODING;
                 break; // Não precisa testar com outros asteroides
             }
         }
@@ -151,6 +153,7 @@ void game_init() {
 // UPDATE: Chamado todo frame (Apenas Matemática e Física)
 // ==========================================
 void game_update() {
+    level_game_resolve_collisions();
     scanKeys();
     u16 keys = keysHeld();
     u16 keys_pressed = keysDown();
@@ -159,8 +162,6 @@ void game_update() {
         bullet_manager_spawn(player.x, player.y, player.angle);
     }
     bullet_manager_update();
-    level_game_resolve_collisions();
-    
     asteroid_manager_update();
     bg_manager_update_opose_ship(player.dx, player.dy);
     hud_update();

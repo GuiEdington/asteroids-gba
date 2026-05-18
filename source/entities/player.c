@@ -11,7 +11,10 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
     p->tile_index = tile_index;
     p->obj = attribs;
     p->affine = affine;
-    p->active = true;
+    p->state = STATE_ALIVE;
+    p->death_timer = 0;
+    p->animation_frame = 0;
+    p->animation_counter = 0;
 
     // Configuração inicial do Hardware (OAM)
     p->obj->attr0 = ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE; 
@@ -19,9 +22,7 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
     p->obj->attr2 = ATTR2_PALETTE(0) | ATTR2_PRIORITY(1) | tile_index;
 }
 
-void player_update(Player *p, u16 keys) {
-    if (!p->active) return;
-
+void player_update_alive(Player *p, u16 keys) {
     // 1. Rotação (Gerencia apenas o ângulo)
     if (keys & KEY_LEFT)  p->angle -= 4;
     if (keys & KEY_RIGHT) p->angle += 4;
@@ -59,12 +60,66 @@ void player_update(Player *p, u16 keys) {
     if (p->y < -PLAYER_SIZE << FLOAT_SHIFT) p->y = SCREEN_HEIGHT << FLOAT_SHIFT;
     if (p->y > SCREEN_HEIGHT << FLOAT_SHIFT) p->y = -PLAYER_SIZE << FLOAT_SHIFT;
 
-    if (p->invuln_timer > 0) {
-        p->invuln_timer--; // Desconta 1 frame
+    if (p->invuln_timer > 0) p->invuln_timer--; // Desconta 1 frame
+}
+
+void player_update_exploding(Player *p) {
+    p->animation_counter++;
+    if (p->animation_counter >= 5) { // A cada 10 frames, muda o frame da animação
+        p->animation_counter = 0;
+        if (p->animation_frame >= 5) { // Supondo que a animação tenha 5 frames
+            p->state = STATE_DEAD; // Animação terminou, jogador está morto
+            p->death_timer = 120; // 2 segundos antes de poder ressuscitar
+        }
+        p->animation_frame++;
     }
 }
 
+void player_update(Player *p, u16 keys) {
+    switch (p->state) {
+        case STATE_ALIVE:
+            player_update_alive(p, keys);
+            break;
+        case STATE_EXPLODING:
+            player_update_exploding(p);
+            break;
+        case STATE_DEAD:
+            // Talvez queira adicionar uma tela de Game Over ou reiniciar o jogo
+            if (p->death_timer > 0) {
+                p->death_timer--;
+            } else {
+                // Deu os 2 segundos! Resuscita o jogador
+                p->obj->attr0 = ATTR0_COLOR_16 | ATTR0_SQUARE | ATTR0_ROTSCALE_DOUBLE; 
+                p->state = STATE_ALIVE;
+                p->x = ((SCREEN_WIDTH/2) - (PLAYER_SIZE/2)) << FLOAT_SHIFT;
+                p->y = ((SCREEN_HEIGHT/2) - (PLAYER_SIZE/2)) << FLOAT_SHIFT;
+                p->dx = 0;
+                p->dy = 0;
+                p->angle = 0;
+                p->invuln_timer = 120; // 2 segundos de invulnerabilidade
+                p->obj->attr2 = ATTR2_PALETTE(0) | ATTR2_PRIORITY(1) | p->tile_index; // Volta para o tile da nave
+                p->death_timer = 0;
+                p->animation_frame = 0;
+                p->animation_counter = 0;
+            }
+            break;
+    }    
+}
+
 void player_draw(Player *p) {
+    if (p->state == STATE_DEAD) {
+        // Se o jogador estiver morto, não desenha nada
+        p->obj->attr0 = ATTR0_DISABLED;
+        return;
+    }
+
+    if (p->state == STATE_EXPLODING) {
+        if (p->animation_frame < 5) {
+            p->obj->attr2 = ATTR2_PALETTE(2) | ATTR2_PRIORITY(1) | (EXPLOSION_TILE_POS + p->animation_frame * 4);
+        }
+        return;
+    }
+
     // Converte ponto fixo de volta para pixels inteiros para a OAM
     int screen_x = (p->x >> FLOAT_SHIFT) ;
     int screen_y = (p->y >> FLOAT_SHIFT) ;
