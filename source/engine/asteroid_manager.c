@@ -6,6 +6,14 @@ static OBJATTR *oam_ref;
 static int oam_offset;
 static Asteroid asteroid_pool[MAX_ASTEROIDS_POOL];
 
+int asteroid_manager_get_active_count() {
+    int count = 0;
+    for (int i = 0; i < MAX_ASTEROIDS_POOL; i++) {
+        if (asteroid_pool[i].active) count++;
+    }
+    return count;
+}
+
 void get_random_spawn_position(int *out_x, int *out_y, int asteroid_size) {
     int edge =  rand() & 3; // 0=topo, 1=direita, 2=baixo, 3=esquerda
     switch (edge) {

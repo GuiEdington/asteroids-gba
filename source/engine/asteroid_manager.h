@@ -14,5 +14,6 @@ void asteroid_manager_spawn(int count);
 int asteroid_manager_get_collider(int index, int *cx, int *cy, int *radius);
 int destroy_asteroid(int index);
 int get_size(int index);
+int asteroid_manager_get_active_count();
 
 #endif

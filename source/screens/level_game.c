@@ -27,6 +27,11 @@ int player_lives;
 int frame_counter;
 int is_fading_out;
 int fade_level;
+int asteroid_progression[18] = {3, 4, 5, 6, 6, 7, 7, 7, 8, 8, 8, 8, 9 ,9 ,9 ,9 ,9 ,10}; // Quantidade de asteroides a spawnar a cada nova "onda"
+int progression_index = 0; // Índice para controlar a progressão de asteroides
+int level_transition_frame_counter = 0; // Contador para controlar a duração da animação de transição entre fases
+int next_extra_life_score = 10000; // Pontuação para a próxima vida extra
+int max_progression_index = 17; // Índice máximo para a progressão de asteroides (baseado no tamanho do array asteroid_progression)
 
 // Supondo que você já tenha essas structs definidas em algum lugar
 
@@ -101,9 +106,10 @@ void level_game_resolve_collisions() {
                         player_score += 100;
                     }
                     update_score(player_score);
-                    if (player_score >= 10000) {
+                    if (player_score >= next_extra_life_score) {
                         player_lives++;
                         update_lives(player_lives);
+                        next_extra_life_score += 10000; // Define a pontuação para a próxima vida extra
                     }
                 }
                 break; // A bala já sumiu, não precisa testar com outros asteroides
@@ -164,7 +170,7 @@ void game_init() {
     player_init(&player, &shadow_oam[0], &shadow_affine[0], 0); // Player fica no índice 0
     bullet_manager_init(&shadow_oam[1], 1); // Tiros começam no índice 1
     asteroid_manager_init(&shadow_oam[18], 18); // Asteroides começam no índice 18 (1 para player + 16 para tiros)
-    asteroid_manager_spawn(6);
+    asteroid_manager_spawn(asteroid_progression[progression_index]); // Spawn inicial de asteroides
 }
 
 // ==========================================
@@ -196,6 +202,18 @@ void game_update() {
             }
         }
         return;
+    }
+    if (asteroid_manager_get_active_count() == 0) {
+        level_transition_frame_counter++;
+        if (level_transition_frame_counter >= 120) { // Espera 1 segundo antes de iniciar a próxima onda
+            level_transition_frame_counter = 0;
+            if (progression_index <= max_progression_index - 1) {
+                progression_index++;
+                asteroid_manager_spawn(asteroid_progression[progression_index]);
+            } else {
+                asteroid_manager_spawn(asteroid_progression[max_progression_index]);
+            }
+        }
     }
 }
 

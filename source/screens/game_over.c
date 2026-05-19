@@ -47,7 +47,7 @@ static void game_over_init() {
     BG_PALETTE[0] = RGB5(0, 0, 0);
     
     // Escreve o texto no mapa do BG2
-    text_draw(10, 9, (unsigned char*)"GAME OVER");
+    text_draw(11, 9, (unsigned char*)"GAME OVER");
 }
 
 static void game_over_update() {
