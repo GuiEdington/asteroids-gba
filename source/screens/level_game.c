@@ -186,7 +186,7 @@ void game_update() {
     u16 level_game_keys_pressed = keysDown();
     u16 level_game_keys_released = keysUp();
     player_update(&player, level_game_keys, level_game_keys_released);
-    if (level_game_keys_pressed & KEY_A) {
+    if ((level_game_keys_pressed & KEY_A) && player.state == STATE_ALIVE) {
         bullet_manager_spawn(player.x, player.y, player.angle);
     }
     bullet_manager_update();
