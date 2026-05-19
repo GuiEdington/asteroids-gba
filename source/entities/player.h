@@ -26,12 +26,13 @@ typedef struct {
     int death_timer;  // Timer para controlar a duração da animação de morte (opcional)
     int animation_frame; // Frame atual da animação (opcional)
     int animation_counter;
+    int accelerating;
 
 } Player;
 
 // Métodos "Públicos"
 void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index);
-void player_update(Player *p, u16 keys);
+void player_update(Player *p, u16 keys_held, u16 keys_released);
 void player_draw(Player *p);
 void player_die(Player *p, int lives);
 

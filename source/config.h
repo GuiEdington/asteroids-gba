@@ -17,7 +17,7 @@
 
 // --- MAPA DA VRAM (SPRITES) ---
 #define SPACESHIP_TILE_POS 0
-#define AST_G_TILE_POS 4
+#define AST_G_TILE_POS 16
 #define AST_M_TILE_POS (AST_G_TILE_POS + 64)
 #define AST_P_TILE_POS (AST_M_TILE_POS + 16)
 #define BULLET_TILE_POS (AST_P_TILE_POS + 4)

@@ -17,6 +17,7 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
     p->death_timer = 0;
     p->animation_frame = 0;
     p->animation_counter = 0;
+    p->accelerating = 0;
     
     player_game_over = 0;
 
@@ -26,7 +27,7 @@ void player_init(Player *p, OBJATTR *attribs, OBJAFFINE *affine, int tile_index)
     p->obj->attr2 = ATTR2_PALETTE(0) | ATTR2_PRIORITY(1) | tile_index;
 }
 
-void player_update_alive(Player *p, u16 keys) {
+void player_update_alive(Player *p, u16 keys, u16 keys_released) {
     // 1. Rotação (Gerencia apenas o ângulo)
     if (keys & KEY_LEFT)  p->angle -= 4;
     if (keys & KEY_RIGHT) p->angle += 4;
@@ -34,7 +35,19 @@ void player_update_alive(Player *p, u16 keys) {
     // 2. Aceleração (Física de Asteroids)
     if (keys & KEY_UP) {
         p->dx += (GET_SIN(p->angle) << 1) >> 3; 
-        p->dy -= (GET_COS(p->angle) << 1) >> 3; 
+        p->dy -= (GET_COS(p->angle) << 1) >> 3;
+        p->accelerating = 1;
+        p->animation_counter++;
+        if (p->animation_counter >= 5) {
+            p->animation_counter = 0;
+            p->animation_frame++;
+            if (p->animation_frame > 3) p->animation_frame = 1; // Supondo que a animação de propulsão tenha 3 frames
+        } 
+    }
+
+    if (keys_released & KEY_UP) {
+        p->animation_frame = 0; // Volta para o frame normal quando solta o acelerador
+        p->accelerating = 0;
     }
 
     // Retro propulsão (Freio)
@@ -84,12 +97,13 @@ void player_die(Player *p, int lives) {
         player_game_over = 1;
     }
     p->state = STATE_EXPLODING;
+    p->animation_counter = 0;
 }
 
-void player_update(Player *p, u16 keys) {
+void player_update(Player *p, u16 keys, u16 keys_released) {
     switch (p->state) {
         case STATE_ALIVE:
-            player_update_alive(p, keys);
+            player_update_alive(p, keys, keys_released);
             break;
         case STATE_EXPLODING:
             player_update_exploding(p);
@@ -129,6 +143,12 @@ void player_draw(Player *p) {
             p->obj->attr2 = ATTR2_PALETTE(2) | ATTR2_PRIORITY(1) | (EXPLOSION_TILE_POS + p->animation_frame * 4);
         }
         return;
+    }
+
+    if (p->state == STATE_ALIVE && p->accelerating) {
+        p->obj->attr2 = ATTR2_PALETTE(0) | ATTR2_PRIORITY(1) | (SPACESHIP_TILE_POS + p->animation_frame * 4);
+    } else {
+        p->obj->attr2 = ATTR2_PALETTE(0) | ATTR2_PRIORITY(1) | SPACESHIP_TILE_POS;
     }
 
     // Converte ponto fixo de volta para pixels inteiros para a OAM

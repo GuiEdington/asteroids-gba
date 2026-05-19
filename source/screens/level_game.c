@@ -10,7 +10,7 @@
 #include "title_screen.h"
 
 // Sprites
-#include "spaceship.h"
+#include "spaceship_tiles.h"
 #include "asteroids_g.h"
 #include "asteroids_m.h"
 #include "asteroids_p.h"
@@ -43,12 +43,12 @@ extern const Scene game_over; // Declaramos a próxima cena para
 
 void loadSpritesInVram() {
 	// Método para carregar os gráficos e paletas dos sprites na memória de vídeo (VRAM) do GBA.
-	dmaCopy(spaceshipPal, SPRITE_PALETTE, spaceshipPalLen);
+	dmaCopy(spaceship_tilesPal, SPRITE_PALETTE, spaceship_tilesPalLen);
     dmaCopy(asteroids_gPal, SPRITE_PALETTE + PAL_SIZE, asteroids_gPalLen);
     dmaCopy(explosionPal, SPRITE_PALETTE + 2 * PAL_SIZE, explosionPalLen);
 
     // Carregar o gráfico dos sprites
-	dmaCopy(spaceshipTiles, SPRITE_GFX, spaceshipTilesLen);
+	dmaCopy(spaceship_tilesTiles, SPRITE_GFX, spaceship_tilesTilesLen);
     dmaCopy(asteroids_gTiles, SPRITE_TILE(AST_G_TILE_POS), asteroids_gTilesLen);
     dmaCopy(asteroids_mTiles, SPRITE_TILE(AST_M_TILE_POS), asteroids_mTilesLen);
     dmaCopy(asteroids_pTiles, SPRITE_TILE(AST_P_TILE_POS), asteroids_pTilesLen);
@@ -184,7 +184,8 @@ void game_update() {
     scanKeys();
     u16 level_game_keys = keysHeld();
     u16 level_game_keys_pressed = keysDown();
-    player_update(&player, level_game_keys);
+    u16 level_game_keys_released = keysUp();
+    player_update(&player, level_game_keys, level_game_keys_released);
     if (level_game_keys_pressed & KEY_A) {
         bullet_manager_spawn(player.x, player.y, player.angle);
     }
