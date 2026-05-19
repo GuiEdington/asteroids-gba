@@ -17,6 +17,7 @@
 #include "explosion.h"
 
 #define MAX_FADE 16
+#define MAX_PROGRESSION_INDEX 17 // Índice máximo para a progressão de asteroides (baseado no tamanho do array asteroid_progression)
 
 // ==========================================
 // ESTADO LOCAL DA FASE (Variáveis Static)
@@ -31,7 +32,6 @@ int asteroid_progression[18] = {3, 4, 5, 6, 6, 7, 7, 7, 8, 8, 8, 8, 9 ,9 ,9 ,9 ,
 int progression_index = 0; // Índice para controlar a progressão de asteroides
 int level_transition_frame_counter = 0; // Contador para controlar a duração da animação de transição entre fases
 int next_extra_life_score = 10000; // Pontuação para a próxima vida extra
-int max_progression_index = 17; // Índice máximo para a progressão de asteroides (baseado no tamanho do array asteroid_progression)
 
 // Supondo que você já tenha essas structs definidas em algum lugar
 
@@ -150,6 +150,8 @@ void game_init() {
     frame_counter = 0;
     is_fading_out = 0;
     fade_level = 0;
+    next_extra_life_score = 10000;
+    progression_index = 0;
     // Ativa Modo 0, Background do Espaço e Sprites!
     REG_BLDCNT = 0; // Reseta o registrador de blend para evitar bugs visuais
     REG_BLDY = 0; // Reseta o nível de blend
@@ -207,11 +209,11 @@ void game_update() {
         level_transition_frame_counter++;
         if (level_transition_frame_counter >= 120) { // Espera 1 segundo antes de iniciar a próxima onda
             level_transition_frame_counter = 0;
-            if (progression_index <= max_progression_index - 1) {
+            if (progression_index <= MAX_PROGRESSION_INDEX - 1) {
                 progression_index++;
                 asteroid_manager_spawn(asteroid_progression[progression_index]);
             } else {
-                asteroid_manager_spawn(asteroid_progression[max_progression_index]);
+                asteroid_manager_spawn(asteroid_progression[MAX_PROGRESSION_INDEX]);
             }
         }
     }
