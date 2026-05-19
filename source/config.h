@@ -12,7 +12,7 @@
 #define VBLANK_IRQ_ENABLE 0x08
 
 // --- CONFIGURAÇÕES DO JOGO ---
-#define MAX_SPEED (4 << 8)
+#define MAX_SPEED (6 << 8)
 
 
 // --- MAPA DA VRAM (SPRITES) ---
